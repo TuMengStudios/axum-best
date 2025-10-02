@@ -1,0 +1,13 @@
+[package]
+name = "axum-best"
+version = "0.1.0"
+edition = "2024"
+description = "For the optimal axum development experience"
+authors = ["xx 2356450144@qq.com"]
+keywords = ["axum development"]
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+tokio = { version = "1.47.1", features = ["full"] }
+human-panic = { version = "2.0.3", features = ["color"] }
