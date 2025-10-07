@@ -1,0 +1,62 @@
+
+max_width = 100                    # Maximum line width for better readability
+hard_tabs = false                  # Use spaces instead of tabs
+tab_spaces = 4                     # 4 spaces per indentation level
+indent_style = "Block"             # Standard block indentation style
+
+# Import and module formatting
+# imports_granularity = "Crate"      # Group imports by crate
+imports_granularity = "Item"      # Group imports by item
+reorder_imports = true             # Sort imports alphabetically
+reorder_modules = true             # Sort module declarations
+group_imports = "StdExternalCrate" # Group imports by std, external crates, current crate
+# merge_imports = true               # Merge imports with same path
+merge_imports = false               # Merge imports with same path
+
+# Function and expression formatting
+fn_call_width = 100                # Maximum function call width
+where_single_line = false          # Always break where clauses
+format_strings = true              # Format string literals
+comment_width = 100                # Maximum comment width
+wrap_comments = true               # Automatically wrap long comments
+
+# Control flow structures
+match_arm_blocks = true            # Keep match arm blocks on new lines
+match_arm_leading_pipe = "Never"   # Don't add leading pipe before match arms
+match_wildcard_trailing_comma = true # Add trailing comma after wildcard patterns
+control_brace_style = "AlwaysSameLine" # Control structure braces on same line
+
+# Type and generic formatting
+type_punctuation_density = "Wide"  # Use more spaces around types
+binop_separator = "Front"          # Binary operators at line start
+reorder_impl_items = false         # Don't reorder impl items, keep logical order
+
+# Macro and attribute formatting
+format_macro_matchers = true       # Format macro matchers
+format_macro_bodies = true         # Format macro bodies
+use_field_init_shorthand = true    # Use field initialization shorthand
+use_try_shorthand = true           # Use ? operator shorthand
+
+# Error handling
+error_on_line_overflow = false     # Don't error on line overflow, wrap instead
+error_on_unformatted = false       # Don't error on unformattable code
+
+# Advanced configuration
+brace_style = "SameLineWhere"      # Brace style
+empty_item_single_line = true      # Place empty items on single line
+imports_layout = "Mixed"           # Import layout style
+match_block_trailing_comma = false # Match block trailing comma
+overflow_delimited_expr = false    # Don't overflow delimited expressions
+struct_lit_single_line = true      # Single line struct literals
+struct_variant_width = 100         # Struct variant width
+
+# Space and line break settings
+spaces_around_ranges = false       # Don't add spaces around range operators
+normalize_comments = false         # Don't normalize comments (keep original format)
+normalize_doc_attributes = false   # Don't normalize doc attributes
+license_template_path = "LICENSE_HEADER" # License header template path (if any)
+
+# Debug and development configuration
+# Note: Recommended to set to false in production
+# required_version = "1.7.0"         # Specify required rustfmt version
+verbose = "Verbose"                    # Don't output verbose logs

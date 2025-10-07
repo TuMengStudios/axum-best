@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  axum-best:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: axum-best
+    network_mode: "host"
+    environment:
+      - RUST_LOG=info
+    volumes:
+      - ./logs:/app/logs
+      - ./etc:/app/etc:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

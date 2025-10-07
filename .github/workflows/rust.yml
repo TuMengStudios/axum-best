@@ -1,0 +1,28 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: true  # 启用 SQLx 离线模式
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # 安装 MySQL 开发库（sqlx 需要）
+    - name: Install MySQL client libraries
+      run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev pkg-config
+
+    - name: Build
+      run: cargo build --verbose
+      
+    - name: Run tests
+      run: cargo test --verbose
