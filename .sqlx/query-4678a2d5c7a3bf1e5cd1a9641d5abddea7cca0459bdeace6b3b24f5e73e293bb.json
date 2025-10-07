@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO user_info (nick_name, avatar, signature, age, phone, wx_open_id, salt, password, created_at, updated_at, deleted_at) \n           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 11
+    },
+    "nullable": []
+  },
+  "hash": "4678a2d5c7a3bf1e5cd1a9641d5abddea7cca0459bdeace6b3b24f5e73e293bb"
+}
