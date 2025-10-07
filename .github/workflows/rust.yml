@@ -16,11 +16,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Install Rust
-      uses: actions/setup-rust@v1
-      with:
-        rust-version: stable
 
     # 安装 MySQL 开发库（sqlx 需要）
     - name: Install MySQL client libraries
