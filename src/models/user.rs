@@ -145,17 +145,14 @@ impl UserInfo {
             "细节决定成败",
         ];
 
-        // 随机头像URL列表
-        let avatars = vec![
-            "https://example.com/avatar1.jpg",
-            "https://example.com/avatar2.jpg",
-            "https://example.com/avatar3.jpg",
-            "https://example.com/avatar4.jpg",
-            "https://example.com/avatar5.jpg",
-            "https://example.com/avatar6.jpg",
-            "https://example.com/avatar7.jpg",
-            "https://example.com/avatar8.jpg",
-        ];
+        // 生成完全随机的头像URL
+        let avatar_id: String = (0..16)
+            .map(|_| {
+                let chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+                let idx = rng.random_range(0..chars.len());
+                chars.chars().nth(idx).unwrap()
+            })
+            .collect();
 
         // 随机盐值
         let salt: String = (0..16)
@@ -202,7 +199,7 @@ impl UserInfo {
         UserInfo {
             id: rng.random_range(1000..100000),
             nick_name: nick_names[rng.random_range(0..nick_names.len())].to_string(),
-            avatar: avatars[rng.random_range(0..avatars.len())].to_string(),
+            avatar: format!("https://example.com/avatar_{}.jpg", avatar_id),
             signature: signatures[rng.random_range(0..signatures.len())].to_string(),
             age: rng.random_range(18..60),
             phone,
