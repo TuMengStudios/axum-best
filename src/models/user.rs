@@ -106,44 +106,52 @@ impl UserInfo {
         let mut rng = rand::rng();
         let timestamp = chrono::Utc::now().timestamp();
 
-        // 随机昵称列表
+        // 扩展的随机昵称列表，增加更多选择
         let nick_names = vec![
-            "张三",
-            "李四",
-            "王五",
-            "赵六",
-            "钱七",
-            "孙八",
-            "周九",
-            "吴十",
-            "小明",
-            "小红",
-            "小刚",
-            "小丽",
-            "小强",
-            "小美",
-            "小华",
-            "小芳",
-            "程序员",
-            "设计师",
-            "产品经理",
-            "测试工程师",
-            "运维工程师",
+            "张三", "李四", "王五", "赵六", "钱七", "孙八", "周九", "吴十",
+            "小明", "小红", "小刚", "小丽", "小强", "小美", "小华", "小芳",
+            "程序员", "设计师", "产品经理", "测试工程师", "运维工程师",
+            "开发者", "架构师", "前端工程师", "后端工程师", "全栈工程师",
+            "技术总监", "项目经理", "数据分析师", "算法工程师", "安全工程师",
+            "网络工程师", "系统管理员", "数据库管理员", "移动开发", "游戏开发",
+            "人工智能", "机器学习", "深度学习", "大数据", "云计算",
+            "物联网", "区块链", "元宇宙", "虚拟现实", "增强现实",
+            "数字孪生", "边缘计算", "量子计算", "生物信息", "机器人",
         ];
 
-        // 随机签名列表
+        // 扩展的随机签名列表，增加更多选择
         let signatures = vec![
-            "热爱编程的程序员",
-            "喜欢探索新技术",
-            "享受创造的过程",
-            "追求代码的优雅",
-            "热爱开源社区",
-            "技术改变世界",
-            "代码即艺术",
-            "持续学习，不断进步",
-            "简单就是美",
-            "细节决定成败",
+            "热爱编程的程序员", "喜欢探索新技术", "享受创造的过程", "追求代码的优雅",
+            "热爱开源社区", "技术改变世界", "代码即艺术", "持续学习，不断进步",
+            "简单就是美", "细节决定成败", "追求极致性能", "关注用户体验",
+            "热爱分享知识", "乐于帮助他人", "享受团队协作", "追求技术创新",
+            "关注行业动态", "热爱生活和工作", "平衡工作与生活", "享受编程乐趣",
+            "探索未知领域", "挑战技术难题", "追求代码质量", "注重工程实践",
+            "热爱开源精神", "关注前沿技术", "享受学习过程", "追求个人成长",
+            "热爱技术社区", "乐于交流分享", "关注产品价值", "追求商业成功",
+            "热爱创造价值", "享受解决问题", "关注用户需求", "追求卓越品质",
         ];
+
+        // 生成唯一性更高的昵称，结合随机后缀
+        let base_nick_name = nick_names[rng.random_range(0..nick_names.len())];
+        let nick_name_suffix: String = (0..4)
+            .map(|_| {
+                let chars = "0123456789";
+                let idx = rng.random_range(0..chars.len());
+                chars.chars().nth(idx).unwrap()
+            })
+            .collect();
+        let nick_name = format!("{}{}", base_nick_name, nick_name_suffix);
+
+        // 生成唯一性更高的签名，结合随机前缀或后缀
+        let base_signature = signatures[rng.random_range(0..signatures.len())];
+        let signature_variants = vec![
+            format!("{}", base_signature),
+            format!("{}的{}", nick_name, base_signature),
+            format!("{} - {}", base_signature, chrono::Utc::now().format("%Y")),
+            format!("{} | {}", base_signature, rng.random_range(1000..9999)),
+        ];
+        let signature = signature_variants[rng.random_range(0..signature_variants.len())].clone();
 
         // 生成完全随机的头像URL
         let avatar_id: String = (0..16)
@@ -198,9 +206,9 @@ impl UserInfo {
 
         UserInfo {
             id: rng.random_range(1000..100000),
-            nick_name: nick_names[rng.random_range(0..nick_names.len())].to_string(),
+            nick_name,
             avatar: format!("https://example.com/avatar_{}.jpg", avatar_id),
-            signature: signatures[rng.random_range(0..signatures.len())].to_string(),
+            signature,
             age: rng.random_range(18..60),
             phone,
             wx_open_id,
