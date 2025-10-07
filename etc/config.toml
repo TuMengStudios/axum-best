@@ -1,0 +1,161 @@
+# =============================================================================
+# Axum Best Application Configuration
+# =============================================================================
+# This configuration file uses TOML format for application settings.
+# All configuration sections are optional with sensible defaults provided.
+# =============================================================================
+
+[log]
+# Logging configuration section
+# -----------------------------------------------------------------------------
+
+# Log level: controls the verbosity of log output
+# Available levels: "trace", "debug", "info", "warn", "error"
+# - trace: Most verbose, includes detailed debugging information
+# - debug: Debug-level information useful for development
+# - info: General operational information (default)
+# - warn: Warning messages that don't stop execution
+# - error: Error messages that indicate problems
+level = "info"
+
+# Log file rotation strategy
+# Available options: "minutely", "hourly", "daily", "never"
+# - minutely: Rotate log files every minute
+# - hourly: Rotate log files every hour (default)
+# - daily: Rotate log files every day
+# - never: Never rotate log files (use with caution)
+rotation = "hourly"
+
+# Maximum number of log files to keep
+# When rotation occurs, older log files beyond this count will be deleted
+# Set to 0 to keep all log files indefinitely
+max_files = 10
+
+# Directory where log files are stored
+# Relative paths are relative to the application's working directory
+dir = "logs"
+
+# Base name for log files
+# Actual log files will be named: {file_name}.{timestamp}.{suffix}
+file_name = "axum_best"
+
+# File extension for log files
+suffix = "log"
+
+# Time format for log timestamps
+# Uses strftime format specifiers
+# Example: "%Y-%m-%d %H:%M:%S%.6f" produces "2024-01-15 14:30:45.123456"
+time_format = "%Y-%m-%d %H:%M:%S%.6f"
+
+# Log output format
+# Available formats: "json", "text"
+# - json: Structured JSON format, suitable for log aggregation systems
+# - text: Human-readable text format
+format = "json"
+
+
+[http]
+# HTTP server configuration section
+# -----------------------------------------------------------------------------
+
+# HTTP server listen address
+# Use "0.0.0.0" to listen on all network interfaces
+# Use "127.0.0.1" to listen only on localhost
+listen = "0.0.0.0"
+
+# HTTP server port number
+# Must be between 1 and 65535
+# Common ports: 80 (HTTP), 443 (HTTPS), 8080 (development)
+port = 8080
+
+
+[mysql]
+# MySQL database configuration section
+# -----------------------------------------------------------------------------
+
+# MySQL database connection string (DSN - Data Source Name)
+# Format: mysql://username:password@host:port/database
+# Example: mysql://root:password@localhost:3306/myapp
+# Security note: Avoid storing passwords in plain text in production
+dsn = "mysql://root:123456@localhost:3306/axum_best"
+
+# Maximum number of connections in the connection pool
+# This controls how many concurrent database connections can be active
+# Higher values allow more concurrent operations but consume more resources
+# Recommended: 10-50 for most applications
+max_connections = 20
+
+# Log level for slow queries
+# Queries taking longer than slow_threshold_mill will be logged at this level
+# Available levels: "trace", "debug", "info", "warn", "error"
+slow_level = "info"
+
+# Maximum lifetime of a database connection in seconds
+# Connections older than this will be closed and replaced
+# This helps prevent connection staleness and resource leaks
+# Recommended: 1800-3600 seconds (30-60 minutes)
+lifetime_sec = 1800
+
+# Maximum time to wait for acquiring a database connection from the pool
+# If all connections are in use and no new connections can be created,
+# the application will wait up to this duration before timing out
+# This prevents indefinite blocking when the database is under heavy load
+# Recommended: 10-60 seconds depending on application requirements
+# Set to 0 to disable timeout (not recommended in production)
+acquire_timeout_sec = 10
+
+# Maximum idle time of a database connection in seconds
+# Idle connections beyond this time will be closed
+# This helps free up database resources
+# Recommended: 300-1800 seconds (5-30 minutes)
+idle_sec = 600
+
+# Log level for connection timeout events
+# Available levels: "trace", "debug", "info", "warn", "error"
+timeout_level = "warn"
+
+# Slow query threshold in milliseconds
+# Queries taking longer than this value will be logged as slow queries
+# This helps identify performance bottlenecks
+# Recommended: 100-5000ms depending on application requirements
+slow_threshold_mills = 2000
+
+
+[redis]
+# Redis configuration section
+# -----------------------------------------------------------------------------
+
+# Redis connection URL in format: redis://[username:password@]host[:port][/database]
+# Example: redis://127.0.0.1:6379/0
+# Security note: Avoid storing passwords in plain text in production
+url = "redis://127.0.0.1:6379/10"
+
+# Maximum lifetime of connections in the pool in seconds
+# This determines how long a connection can remain in the pool before being closed
+# and replaced with a new connection. Helps prevent stale connections.
+# Recommended: 30-300 seconds depending on application requirements
+lifetime_secs = 30
+
+# Maximum number of connections in the pool
+# This limits the total number of connections that can be created and maintained
+# in the connection pool. Helps control resource usage.
+# Recommended: 10-100 depending on expected concurrent load
+max_size = 50
+
+# Minimum number of idle connections to maintain in the pool
+# This ensures that a certain number of connections are kept ready for immediate use,
+# reducing connection establishment overhead for frequent operations.
+# Recommended: 5-20 depending on expected traffic patterns
+min_idle = 10
+
+[wechat]
+appid = "xxx"
+secret = "ab"
+# =============================================================================
+# Configuration Notes:
+# =============================================================================
+# 1. All paths can be absolute or relative to the application's working directory
+# 2. Environment variables can override these settings (check application documentation)
+# 3. For production deployments, consider using environment-specific config files
+# 4. Database passwords should be managed securely (e.g., using secrets management)
+# =============================================================================
