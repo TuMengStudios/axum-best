@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use smart_default::SmartDefault;
 use tokio::net::TcpListener;
+use tracing::info;
 
 /// HTTP server configuration
 ///
@@ -40,6 +41,25 @@ impl HttpConf {
     pub async fn build_listener(&self) -> anyhow::Result<TcpListener> {
         println!("try to listen {:?}", self.address());
         let listener = TcpListener::bind(self.address()).await?;
+        if self.address().starts_with("0.0.0.0") {
+            match local_ip_address::local_ip() {
+                Ok(ip) => {
+                    // Start HTTP server
+                    println!("Starting HTTP server on http://{}:{}", ip, self.port);
+                    info!("Starting HTTP server on http://{}:{}", ip, self.port);
+                }
+                Err(_err) => {
+                    // Start HTTP server
+                    println!("Starting HTTP server on http://{}", self.address(),);
+                    info!("Starting HTTP server on http://{}", self.address(),);
+                }
+            }
+        } else {
+            // Start HTTP server
+            println!("Starting HTTP server on http://{}", self.address(),);
+            tracing::info!("Starting HTTP server on http://{}", self.address(),);
+        }
+
         println!("listen {} success", self.address());
         Ok(listener)
     }
