@@ -59,14 +59,8 @@ impl ServeContext {
     pub async fn start(&mut self) -> anyhow::Result<()> {
         // Create application router
         let app = routers::app_routers(self.app_state.clone());
-
-        // Start HTTP server
-        println!("Starting HTTP server on http://{}", self.cfg.http.address(),);
-        info!("Starting HTTP server on http://{}", self.cfg.http.address(),);
-
         let listener = self.cfg.http.build_listener().await?;
         axum::serve::serve(listener, app).await?;
-
         println!("Server started successfully");
         info!("Server started successfully");
         Ok(())
