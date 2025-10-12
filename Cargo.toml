@@ -60,6 +60,7 @@ digest = { version = "0.10.7" }
 r2d2 = { version = "0.8.10" }
 tower-request-id = { version = "0.3.0" }
 ureq = { version = "3.1.2", features = ["json"] }
+local-ip-address = "0.6.5"
 
 [dev-dependencies]
 criterion = { version = "0.7.0", features = ["html_reports"] }
