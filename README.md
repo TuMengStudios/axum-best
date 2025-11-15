@@ -2,7 +2,8 @@
 
 > For the optimal axum development experience
 
-[简体中文](README_ZH.md)
+* [简体中文](README_ZH.md)
+* [development tools](dev.md)
 
 ## Project Overview
 
