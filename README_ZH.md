@@ -1,6 +1,8 @@
 # axum best
 
-[english doc](README.md)
+* [english doc](README.md)
+* [开发工具](dev.md)
+
 > 为最佳的 axum 开发体验而设计
 
 ## 项目概述

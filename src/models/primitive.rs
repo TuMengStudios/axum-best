@@ -1,3 +1,5 @@
+use std::fmt;
+
 /// 支持所有基础类型的枚举
 #[derive(Debug, Clone, PartialEq)]
 pub enum Primitive {
@@ -37,7 +39,7 @@ pub enum Primitive {
 #[tokio::test]
 async fn todo2() {
     let _p = Primitive::from(23);
-    println!("{} {} --- {:?}", _p.to_string(), _p.type_name(), _p)
+    println!("{} {} --- {:?}", _p, _p.type_name(), _p)
 }
 impl Primitive {
     /// 获取值的类型名称
@@ -61,30 +63,6 @@ impl Primitive {
             Primitive::Char(_) => "char",
             Primitive::Str(_) => "String",
             Primitive::Null => "null",
-        }
-    }
-
-    /// 转换为字符串表示
-    pub fn to_string(&self) -> String {
-        match self {
-            Primitive::I8(v) => v.to_string(),
-            Primitive::I16(v) => v.to_string(),
-            Primitive::I32(v) => v.to_string(),
-            Primitive::I64(v) => v.to_string(),
-            Primitive::I128(v) => v.to_string(),
-            Primitive::Isize(v) => v.to_string(),
-            Primitive::U8(v) => v.to_string(),
-            Primitive::U16(v) => v.to_string(),
-            Primitive::U32(v) => v.to_string(),
-            Primitive::U64(v) => v.to_string(),
-            Primitive::U128(v) => v.to_string(),
-            Primitive::Usize(v) => v.to_string(),
-            Primitive::F32(v) => v.to_string(),
-            Primitive::F64(v) => v.to_string(),
-            Primitive::Bool(v) => v.to_string(),
-            Primitive::Char(v) => v.to_string(),
-            Primitive::Str(v) => v.clone(),
-            Primitive::Null => "null".to_string(),
         }
     }
 
@@ -131,6 +109,31 @@ impl Primitive {
     /// 检查是否为浮点类型
     pub fn is_float(&self) -> bool {
         matches!(self, Primitive::F32(_) | Primitive::F64(_))
+    }
+}
+
+impl fmt::Display for Primitive {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Primitive::I8(v) => write!(f, "{v}"),
+            Primitive::I16(v) => write!(f, "{v}"),
+            Primitive::I32(v) => write!(f, "{v}"),
+            Primitive::I64(v) => write!(f, "{v}"),
+            Primitive::I128(v) => write!(f, "{v}"),
+            Primitive::Isize(v) => write!(f, "{v}"),
+            Primitive::U8(v) => write!(f, "{v}"),
+            Primitive::U16(v) => write!(f, "{v}"),
+            Primitive::U32(v) => write!(f, "{v}"),
+            Primitive::U64(v) => write!(f, "{v}"),
+            Primitive::U128(v) => write!(f, "{v}"),
+            Primitive::Usize(v) => write!(f, "{v}"),
+            Primitive::F32(v) => write!(f, "{v}"),
+            Primitive::F64(v) => write!(f, "{v}"),
+            Primitive::Bool(v) => write!(f, "{v}"),
+            Primitive::Char(v) => write!(f, "{v}"),
+            Primitive::Str(v) => f.write_str(v),
+            Primitive::Null => f.write_str("null"),
+        }
     }
 }
 
@@ -245,6 +248,7 @@ impl From<usize> for Primitive {
 }
 
 #[cfg(test)]
+#[allow(clippy::approx_constant)]
 mod tests {
     use super::*;
 

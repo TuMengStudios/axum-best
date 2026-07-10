@@ -48,7 +48,7 @@ impl LogConfig {
             "info" => Level::INFO,
             "warn" => Level::WARN,
             "error" => Level::ERROR,
-            other @ _ => {
+            other => {
                 println!("not found {other} use info");
                 Level::INFO
             }
@@ -62,7 +62,7 @@ impl LogConfig {
             "hourly" => Rotation::HOURLY,
             "daily" => Rotation::DAILY,
             "never" => Rotation::NEVER,
-            other @ _ => {
+            other => {
                 println!("other setting {other} use {:?}", Rotation::HOURLY);
                 Rotation::HOURLY
             }
@@ -73,7 +73,7 @@ impl LogConfig {
     fn is_json(&self) -> bool {
         match self.format.to_lowercase().as_str() {
             "json" => true,
-            other @ _ => {
+            other => {
                 println!("format {other} use plain");
                 false
             }

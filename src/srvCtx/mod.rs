@@ -14,6 +14,9 @@ pub struct ServeContext {
     cfg: AppConf,
     /// Application state instance containing database connections and other shared resources
     app_state: AppState,
+    /// Guard for the non-blocking log worker; must be kept alive for the lifetime
+    /// of the server so log flushing on drop happens correctly.
+    #[allow(dead_code)]
     work_guard: WorkerGuard,
 }
 
