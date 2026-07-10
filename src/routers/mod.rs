@@ -45,7 +45,7 @@ pub fn app_routers(state: AppState) -> Router {
         .layer(CompressionLayer::new())
         .layer(trace_layer);
     //
-    let app = Router::new()
+    Router::new()
         .route("/user/{id}", get(userHandler::user_by_id))
         .route("/user/wx/login", post(userHandler::wechat_login))
         .route("/user/email", post(userHandler::bind_email))
@@ -59,9 +59,7 @@ pub fn app_routers(state: AppState) -> Router {
         .layer(cors_layer)
         .layer(middleware::from_fn(inject_request_id))
         .layer(RequestIdLayer)
-        .with_state(state);
-
-    app
+        .with_state(state)
 }
 
 /// Middleware function that injects request ID into the response headers and tracing spans
@@ -89,6 +87,17 @@ async fn inject_request_id(req: Request, next: Next) -> Response {
 
     let mut resp = next.run(req).instrument(parent).await;
     let resp_header = resp.headers_mut();
-    resp_header.insert("Request-Id", HeaderValue::from_str(&request_id).unwrap());
+    match HeaderValue::from_str(&request_id) {
+        Ok(header_value) => {
+            resp_header.insert("Request-Id", header_value);
+        }
+        Err(err) => {
+            tracing::error!(
+                "failed to build Request-Id header from '{}': {}",
+                request_id,
+                err
+            );
+        }
+    }
     resp
 }

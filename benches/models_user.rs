@@ -3,9 +3,7 @@ use criterion::Criterion;
 
 fn bench_random_user(c: &mut Criterion) {
     c.bench_function("random user", |b| {
-        b.iter(
-            || models::user::UserInfo::random(), // let _ = gen_valid_code(black_box(4));
-        )
+        b.iter(models::user::UserInfo::random)
     });
 }
 

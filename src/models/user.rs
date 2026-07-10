@@ -214,8 +214,8 @@ impl UserInfo {
 
         // 生成唯一性更高的签名，结合随机前缀或后缀
         let base_signature = signatures[rng.random_range(0..signatures.len())];
-        let signature_variants = vec![
-            format!("{}", base_signature),
+        let signature_variants = [
+            base_signature.to_string(),
             format!("{}的{}", nick_name, base_signature),
             format!("{} - {}", base_signature, chrono::Utc::now().format("%Y")),
             format!("{} | {}", base_signature, rng.random_range(1000..9999)),

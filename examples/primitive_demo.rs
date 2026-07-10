@@ -1,5 +1,6 @@
 use axum_best::models::primitive::Primitive;
 
+#[allow(clippy::approx_constant)]
 fn main() {
     println!("=== Primitive 枚举使用示例 ===");
 
@@ -18,7 +19,7 @@ fn main() {
     for value in values {
         println!("值: {:?}", value);
         println!("类型: {}", value.type_name());
-        println!("字符串表示: {}", value.to_string());
+        println!("字符串表示: {}", value);
         println!("是否为数值: {}", value.is_numeric());
         println!("是否为整数: {}", value.is_integer());
         println!("是否为浮点数: {}", value.is_float());

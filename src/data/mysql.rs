@@ -69,8 +69,7 @@ impl MysqlConf {
             "info" => log::LevelFilter::Info,
             "warn" => log::LevelFilter::Warn,
             "error" => log::LevelFilter::Error,
-            #[rustfmt::skip]
-            other @ _ => {
+            other => {
                 println!("Invalid slow_level '{}', using default 'info'", other);
                 log::LevelFilter::Info
             }
@@ -160,11 +159,14 @@ impl MysqlConf {
         Ok(pool)
     }
 
+}
+
+impl Default for MysqlConf {
     /// Creates a default MySQL configuration
     ///
     /// Returns a MysqlConf instance with sensible default values
     /// suitable for development environments.
-    pub fn default() -> Self {
+    fn default() -> Self {
         Self {
             dsn: "mysql://username:password@localhost:3306/database".to_string(),
             max_connections: 10,

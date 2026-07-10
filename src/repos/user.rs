@@ -23,9 +23,9 @@ pub async fn create(conn: &MySqlPool, user: &mut UserInfo) -> Result<(), AppErro
         user.deleted_at
     )
     .execute(conn)
-    .await.map_err(|err|{
-        covert_error(err)
-    })?.last_insert_id() as i64;
+    .await
+    .map_err(covert_error)?
+    .last_insert_id() as i64;
 
     Ok(())
 }
@@ -50,7 +50,7 @@ pub async fn update(conn: &MySqlPool, user: &UserInfo) -> Result<(), AppError> {
     )
     .execute(conn)
     .await
-    .map_err(|err| covert_error(err))?;
+    .map_err(covert_error)?;
 
     Ok(())
 }
@@ -60,7 +60,7 @@ pub async fn get_by_id(conn: &MySqlPool, id: i64) -> Result<UserInfo, AppError> 
     let user = sqlx::query_as!(UserInfo, r#"SELECT * FROM user_info WHERE id = ?"#, id)
         .fetch_one(conn)
         .await
-        .map_err(|err| covert_error(err))?;
+        .map_err(covert_error)?;
     Ok(user)
 }
 
@@ -69,7 +69,7 @@ pub async fn get_by_phone(conn: &MySqlPool, phone: &str) -> Result<UserInfo, App
     let user = sqlx::query_as!(UserInfo, r#"SELECT * FROM user_info WHERE phone = ?"#, phone)
         .fetch_one(conn)
         .await
-        .map_err(|err| covert_error(err))?;
+        .map_err(covert_error)?;
     Ok(user)
 }
 
@@ -79,7 +79,7 @@ pub async fn get_by_wx_open_id(conn: &MySqlPool, wx_open_id: &str) -> Result<Use
         sqlx::query_as!(UserInfo, r#"SELECT * FROM user_info WHERE wx_open_id = ?"#, wx_open_id)
             .fetch_one(conn)
             .await
-            .map_err(|err| covert_error(err))?;
+            .map_err(covert_error)?;
     Ok(user)
 }
 
@@ -88,7 +88,7 @@ pub async fn delete(conn: &MySqlPool, id: i64, deleted_at: i64) -> Result<(), Ap
     sqlx::query!(r#"UPDATE user_info SET deleted_at = ? WHERE id = ?"#, deleted_at, id)
         .execute(conn)
         .await
-        .map_err(|err| covert_error(err))?;
+        .map_err(covert_error)?;
 
     Ok(())
 }
@@ -98,7 +98,7 @@ pub async fn hard_delete(conn: &MySqlPool, id: i64) -> Result<(), AppError> {
     sqlx::query!(r#"DELETE FROM user_info WHERE id = ?"#, id)
         .execute(conn)
         .await
-        .map_err(|err| covert_error(err))?;
+        .map_err(covert_error)?;
 
     Ok(())
 }
@@ -114,7 +114,7 @@ pub async fn list(conn: &MySqlPool, page: u32, page_size: u32) -> Result<Vec<Use
     )
     .fetch_all(conn)
     .await
-    .map_err(|err| covert_error(err))?;
+    .map_err(covert_error)?;
 
     Ok(users)
 }
@@ -124,7 +124,7 @@ pub async fn count(conn: &MySqlPool) -> Result<i64, AppError> {
     let count = sqlx::query_scalar!(r#"SELECT COUNT(*) FROM user_info WHERE deleted_at = 0"#)
         .fetch_one(conn)
         .await
-        .map_err(|err| covert_error(err))?;
+        .map_err(covert_error)?;
 
     Ok(count)
 }
@@ -150,7 +150,7 @@ pub async fn search_by_nickname(
     )
     .fetch_all(conn)
     .await
-    .map_err(|err| covert_error(err))?;
+    .map_err(covert_error)?;
 
     Ok(users)
 }
