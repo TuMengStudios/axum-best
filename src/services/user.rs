@@ -47,11 +47,11 @@ impl UserService {
         let key = format!("bind_email_{}", req.email);
         let valid_code = utils::gen_valid_code(5);
         info!("valid_code {}", valid_code);
-        let _: () = state
-            .get_redis_client()
-            .unwrap()
-            .set(&key, valid_code)
-            .unwrap();
+        let mut redis_conn = state.get_redis_client()?;
+        let _: () = redis_conn.set(&key, valid_code).map_err(|err| {
+            error!("set redis key error {}", err);
+            errors::ErrRedisClient.clone()
+        })?;
         ok!(PreBindEmailResponse::default())
     }
 
@@ -100,7 +100,10 @@ impl UserService {
         info!("bind email {}", req.email);
         let mut redis_conn = state.get_redis_client()?;
         let key = format!("user_{}", req.email);
-        let _: () = redis_conn.set(&key, "").unwrap();
+        let _: () = redis_conn.set(&key, "").map_err(|err| {
+            error!("set redis key error {}", err);
+            errors::ErrRedisClient.clone()
+        })?;
         ok!(BindEmailResponse::default())
     }
 

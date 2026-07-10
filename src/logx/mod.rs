@@ -95,7 +95,7 @@ impl LogConfig {
             .filename_prefix(self.file_name.clone())
             .filename_suffix(self.suffix.clone())
             .build(self.dir.clone())
-            .expect("build file appender failed");
+            .map_err(|err| anyhow::anyhow!("build file appender failed: {err}"))?;
 
         let (writer, guard) = tracing_appender::non_blocking(file_appender);
 
