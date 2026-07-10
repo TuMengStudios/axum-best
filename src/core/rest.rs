@@ -16,12 +16,11 @@ pub struct AppError {
 
 impl AppError {
     pub fn new(status: StatusCode, err_no: i64, err_msg: &str) -> Self {
-        let res = AppError {
+        AppError {
             status,
             err_no,
             err_msg: err_msg.to_string(),
-        };
-        res
+        }
     }
 }
 

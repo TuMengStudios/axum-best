@@ -19,14 +19,14 @@ fn bench_file_digest(c: &mut Criterion) {
     c.bench_function("file digest", |b| {
         b.iter(|| {
             let path = Path::new(file_path!("tests/index.txt"));
-            file_digest(&path, axum_best::utils::HashAlgorithm::SHA1)
+            file_digest(path, axum_best::utils::HashAlgorithm::SHA1)
         });
     });
 
     c.bench_function("file digest md5", |b| {
         b.iter(|| {
             let path = Path::new(file_path!("tests/index.txt"));
-            file_digest(&path, axum_best::utils::HashAlgorithm::MD5)
+            file_digest(path, axum_best::utils::HashAlgorithm::MD5)
         });
     });
 }
