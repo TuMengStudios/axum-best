@@ -8,11 +8,8 @@ use std::time::UNIX_EPOCH;
 use axum_best::models::user::UserInfo;
 
 /// 获取当前时间戳
-fn current_timestamp() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64
+fn current_timestamp() -> Result<i64, Box<dyn std::error::Error>> {
+    Ok(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64)
 }
 
 #[tokio::main]
@@ -34,8 +31,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         wx_open_id: "wx_openid_123456789".to_string(),
         salt: "random_salt".to_string(),
         password: "hashed_password".to_string(),
-        created_at: current_timestamp(),
-        updated_at: current_timestamp(),
+        created_at: current_timestamp()?,
+        updated_at: current_timestamp()?,
         deleted_at: 0,
     };
 
@@ -68,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         salt: new_user.salt.clone(),
         password: new_user.password.clone(),
         created_at: new_user.created_at,
-        updated_at: current_timestamp(),
+        updated_at: current_timestamp()?,
         deleted_at: new_user.deleted_at,
     };
 

@@ -203,12 +203,9 @@ impl UserInfo {
 
         // 生成唯一性更高的昵称，结合随机后缀
         let base_nick_name = nick_names[rng.random_range(0..nick_names.len())];
+        let digits = b"0123456789";
         let nick_name_suffix: String = (0..4)
-            .map(|_| {
-                let chars = "0123456789";
-                let idx = rng.random_range(0..chars.len());
-                chars.chars().nth(idx).unwrap()
-            })
+            .map(|_| digits[rng.random_range(0..digits.len())] as char)
             .collect();
         let nick_name = format!("{}{}", base_nick_name, nick_name_suffix);
 
@@ -223,39 +220,25 @@ impl UserInfo {
         let signature = signature_variants[rng.random_range(0..signature_variants.len())].clone();
 
         // 生成完全随机的头像URL
+        let avatar_chars = b"abcdefghijklmnopqrstuvwxyz0123456789";
         let avatar_id: String = (0..16)
-            .map(|_| {
-                let chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-                let idx = rng.random_range(0..chars.len());
-                chars.chars().nth(idx).unwrap()
-            })
+            .map(|_| avatar_chars[rng.random_range(0..avatar_chars.len())] as char)
             .collect();
 
         // 随机盐值
+        let alphanumeric = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         let salt: String = (0..16)
-            .map(|_| {
-                let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                let idx = rng.random_range(0..chars.len());
-                chars.chars().nth(idx).unwrap()
-            })
+            .map(|_| alphanumeric[rng.random_range(0..alphanumeric.len())] as char)
             .collect();
 
         // 随机密码哈希
         let password: String = (0..32)
-            .map(|_| {
-                let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                let idx = rng.random_range(0..chars.len());
-                chars.chars().nth(idx).unwrap()
-            })
+            .map(|_| alphanumeric[rng.random_range(0..alphanumeric.len())] as char)
             .collect();
 
         // 随机微信OpenID
         let wx_open_id: String = (0..28)
-            .map(|_| {
-                let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                let idx = rng.random_range(0..chars.len());
-                chars.chars().nth(idx).unwrap()
-            })
+            .map(|_| alphanumeric[rng.random_range(0..alphanumeric.len())] as char)
             .collect();
 
         // 随机手机号

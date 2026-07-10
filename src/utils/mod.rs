@@ -142,21 +142,22 @@ async fn test_gen_valid_code() {
 }
 
 #[tokio::test]
-async fn test_file_digest() {
+async fn test_file_digest() -> Result<()> {
     use manifest_dir_macros::file_path;
     let path = Path::new(file_path!("tests/index.txt"));
-    let digest = file_digest(path, HashAlgorithm::SHA1).unwrap();
+    let digest = file_digest(path, HashAlgorithm::SHA1)?;
     println!("sha1:{}", digest);
     assert_eq!(digest, "65aed31e2af181f131e7091301b97d0b8379bdf3");
-    let digest = file_digest(path, HashAlgorithm::SHA512).unwrap();
+    let digest = file_digest(path, HashAlgorithm::SHA512)?;
     println!("sha256:{}", digest);
     assert_eq!(
         digest,
         "d074479576ba7b335c9178bfdd85a9f0f32084faa823b83922d638c3fe3dcca7ac836783fbf6f14cf253c915b46ce7d9974814c28063cad74e987131652dcf7f"
     );
-    let digest = file_digest(path, HashAlgorithm::MD5).unwrap();
+    let digest = file_digest(path, HashAlgorithm::MD5)?;
     println!("md5:{}", digest);
     assert_eq!(digest, "deab55458837fbe4ec2a6e61690fe998");
+    Ok(())
 }
 
 #[tokio::test]
