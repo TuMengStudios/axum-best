@@ -7,51 +7,69 @@
 
 ## Project Overview
 
-axum-best is a high-performance web application framework built with Rust and the Axum web framework. It provides a robust foundation for building scalable and maintainable web services with best practices in mind.
+axum-best is a Rust web project template built on [Axum](https://github.com/tokio-rs/axum) and [Tokio](https://tokio.rs/). It demonstrates a layered architecture for building scalable HTTP services with MySQL, Redis, structured logging, request validation, and common middleware.
 
 ### Key Features
 
-- **High Performance**: Built on top of Tokio and Axum for maximum throughput
-- **Clean Architecture**: Well-structured codebase following domain-driven design principles
-- **Database Support**: MySQL integration with SQLx for type-safe database operations
-- **Caching Layer**: Redis-based caching for improved performance
-- **Comprehensive Error Handling**: Structured error handling throughout the application
-- **Configuration Management**: Flexible configuration system with environment-specific settings
-- **Docker Support**: Containerized deployment with Docker and Docker Compose
-- **Benchmarking**: Built-in benchmarking tools for performance testing
+- **High Performance**: Built on top of Tokio and Axum for asynchronous request handling
+- **Layered Architecture**: Clear separation of Transport, Handler, Service, Repository, and Data layers
+- **MySQL + SQLx**: Type-safe database operations with compile-time checked queries; offline query metadata is committed under `.sqlx`
+- **Redis Caching**: Connection pooling via `r2d2` over the `redis` crate for caching and session-like storage
+- **Request Validation**: Input validation with `validator` and `axum-valid`
+- **Middleware Stack**: Request-ID tracing, CORS, request/response compression, decompression, and timeout handling
+- **Structured Logging**: JSON log output with rotation, configurable via `etc/config.toml`
+- **WeChat Mini-Program Login**: Placeholder login flow that maps a WeChat code to an existing user by `openid`
+- **Email Binding**: Placeholder email-binding workflow with validation code generation
+- **User CRUD**: Complete create, read, update, delete, and search operations for `user_info`
+- **Utility Modules**: Numeric verification code generation, file digest (MD5/SHA1/SHA256/SHA512), and a generic `Primitive` enum
+- **Docker Support**: Multi-stage Dockerfile and Docker Compose setup
+- **Benchmarks**: Criterion benchmarks for utility functions and model generation
 
 ## Project Structure
 
 ```plain
 src/
-├── conf/           # Configuration management
-├── core/           # Core application logic and state management
-├── data/           # Data access layer (MySQL, Redis)
-├── errors/         # Error types and handling
+├── conf/           # Configuration loading from TOML
+├── core/           # Core types: AppState, AppResult/AppError wrappers
+├── data/           # MySQL and Redis connection/pool implementations
+├── errors/         # Predefined application errors
 ├── handlers/       # HTTP request handlers
-├── logx/           # Logging utilities
-├── models/         # Data models and entities
-├── repos/          # Repository pattern implementations
-├── routers/        # Route definitions
+├── logx/           # Structured logging initialization
+├── models/         # Data models and entities (e.g. UserInfo)
+├── repos/          # Repository pattern / raw SQLx data access
+├── routers/        # Route definitions and middleware stack
 ├── services/       # Business logic layer
-├── srvCtx/         # Service context and dependency injection
-├── transport/      # HTTP transport layer and middleware
-├── types/          # Custom type definitions
-└── utils/          # Utility functions
+├── srvCtx/         # Server context: builds state and starts the HTTP server
+├── transport/      # HTTP server setup and middleware helpers
+│   └── middleware/ # Custom middleware functions
+├── types/          # Request/response DTOs with validation
+└── utils/          # Utility functions (hash, valid code, etc.)
 
-benches/           # Benchmark tests
-examples/          # Example usage code
-migrations/        # Database migration scripts
+benches/           # Criterion benchmark suites
+examples/          # Runnable example programs
 etc/               # Configuration files
+migrations/        # SQLx database migration scripts
 ```
 
 ### Architecture Layers
 
-1. **Transport Layer** (`src/transport/`): HTTP server setup, middleware, and request/response handling
-2. **Handler Layer** (`src/handlers/`): HTTP endpoint handlers that orchestrate service calls
+1. **Transport Layer** (`src/transport/`): TCP listener, HTTP server setup, and reusable middleware
+2. **Handler Layer** (`src/handlers/`): HTTP endpoint handlers that parse input and call services
 3. **Service Layer** (`src/services/`): Business logic implementation
-4. **Repository Layer** (`src/repos/`): Data access abstraction
-5. **Data Layer** (`src/data/`): Database and cache implementations
+4. **Repository Layer** (`src/repos/`): Data access abstraction over SQLx
+5. **Data Layer** (`src/data/`): Database and cache connection/pool management
+
+## API Endpoints
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| `GET` | `/health` | Health check, returns `ok` |
+| `GET` | `/foo` | Demo query endpoint with validated `key_word` |
+| `GET` | `/user/{id}` | Get user by ID |
+| `POST` | `/user/wx/login` | WeChat mini-program login placeholder |
+| `GET` | `/user/random` | Create and return a random `UserInfo` |
+| `POST` | `/user/email/pre` | Generate and store an email binding validation code |
+| `POST` | `/user/email` | Bind an email address using the validation code |
 
 ## Development Guide
 
@@ -60,6 +78,7 @@ etc/               # Configuration files
 - Rust 1.89+ (install via [rustup](https://rustup.rs/))
 - MySQL 5.7.20+
 - Redis 5.0+
+- `sqlx-cli` with MySQL support: `cargo install sqlx-cli --features mysql`
 
 ### Getting Started
 
@@ -70,11 +89,11 @@ etc/               # Configuration files
    cd axum-best
    ```
 
-2. **Set up environment variables**
+2. **Configure the application**
 
-   Create a `.env` file with your database and Redis configuration.
+   Edit `etc/config.toml` to set your MySQL DSN, Redis URL, HTTP listen address, log settings, and WeChat credentials.
 
-3. **Run database migrations**
+3. **Create the database and run migrations**
 
    ```bash
    # Make sure MySQL is running
@@ -87,6 +106,8 @@ etc/               # Configuration files
    cargo run
    ```
 
+   The server listens on `http://0.0.0.0:8080` by default.
+
 ### Development Commands
 
 ```bash
@@ -96,8 +117,14 @@ cargo run
 # Run tests
 cargo test
 
+# Run tests with nextest (requires cargo-nextest)
+cargo nextest run
+
 # Run benchmarks
 cargo bench
+
+# Hot reload during development (requires cargo-watch)
+cargo watch -x run
 
 # Format code
 cargo fmt
@@ -112,6 +139,7 @@ cargo build --release
 ### Code Organization
 
 - **Models**: Define your data structures in `src/models/`
+- **Types**: Define request/response DTOs with validation in `src/types/`
 - **Handlers**: Add new HTTP endpoints in `src/handlers/`
 - **Services**: Implement business logic in `src/services/`
 - **Repositories**: Add data access methods in `src/repos/`
@@ -120,16 +148,64 @@ cargo build --release
 ### Adding New Features
 
 1. Define data models in `src/models/`
-2. Create repository methods in `src/repos/`
-3. Implement business logic in `src/services/`
-4. Add HTTP handlers in `src/handlers/`
-5. Register routes in `src/routers/`
+2. Define request/response types in `src/types/`
+3. Create repository methods in `src/repos/`
+4. Implement business logic in `src/services/`
+5. Add HTTP handlers in `src/handlers/`
+6. Register routes in `src/routers/`
+
+## Configuration
+
+Configuration is loaded from a TOML file (default: `etc/config.toml`). The file path can be overridden via the command line:
+
+```bash
+cargo run -- --conf etc/config.toml
+```
+
+Key sections in `etc/config.toml`:
+
+- `[log]` — log level, rotation, directory, filename, and JSON/text format
+- `[http]` — listen address and port (default `0.0.0.0:8080`)
+- `[mysql]` — DSN, connection pool size, slow query thresholds
+- `[redis]` — Redis URL and pool settings
+- `[wechat]` — WeChat mini-program `appid` and `secret`
+
+The `.env` file is used by `sqlx-cli` and the SQLx compile-time query checker (`DATABASE_URL=mysql://root:123456@localhost:3306/axum_best`).
+
+## Examples
+
+The `examples/` directory contains small runnable programs:
+
+- `db_demo` — load config and test the MySQL connection
+- `user_crud_demo` — demonstrate user repository CRUD usage
+- `primitive_demo` — demonstrate the `Primitive` enum
+- `test_valid_code` — test numeric verification code generation
+- `test_random_uniqueness` — test random `UserInfo` generation uniqueness
+
+Run an example with:
+
+```bash
+cargo run --example db_demo
+```
+
+## Benchmarks
+
+Criterion benchmarks are located in `benches/`:
+
+- `utils_benchmark` — benchmarks `gen_valid_code` and `file_digest`
+- `models_user` — benchmarks `UserInfo::random()`
+
+Run all benchmarks with:
+
+```bash
+cargo bench
+```
 
 ## Deployment
 
 ### Docker Deployment
 
-The project includes Docker support for easy deployment:
+The project includes Docker support for easy deployment. The application listens on port `8080` inside the container.
 
 1. **Build and run with Docker Compose**
 
@@ -141,16 +217,8 @@ The project includes Docker support for easy deployment:
 
    ```bash
    docker build -t axum-best .
-   docker run -p 3000:3000 axum-best
+   docker run -p 8080:8080 axum-best
    ```
-
-### Environment Configuration
-
-Create a `.env` file with the following variables:
-
-```env
-DATABASE_URL=mysql://username:password@localhost:3306/database_name
-```
 
 ### Production Deployment
 
@@ -166,21 +234,15 @@ DATABASE_URL=mysql://username:password@localhost:3306/database_name
 
 ### Health Checks
 
-The application includes health check endpoints:
+The application includes a health check endpoint:
 
-- `GET /health` - Basic application health
+- `GET /health` — returns `ok`
 
-## Configuration
-
-Configuration is managed through:
-
-- `etc/config.toml` - Main configuration file
-- Environment variables (override config file settings)
-- Command-line arguments
+Docker Compose and the Dockerfile both configure health checks against `http://localhost:8080/health`.
 
 ## Performance Considerations
 
-- Use connection pooling for database operations
+- Use connection pooling for database and Redis operations
 - Implement caching for frequently accessed data
 - Enable compression for HTTP responses
 - Use appropriate logging levels in production
