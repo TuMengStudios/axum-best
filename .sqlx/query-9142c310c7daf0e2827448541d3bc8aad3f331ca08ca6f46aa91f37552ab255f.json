@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT * FROM user_info \n           WHERE nick_name LIKE ? AND deleted_at = 0 \n           ORDER BY id DESC LIMIT ? OFFSET ?",
+  "query": "SELECT * FROM user_info\n           WHERE nick_name LIKE ? AND deleted_at = 0\n           ORDER BY id DESC LIMIT ? OFFSET ?",
   "describe": {
     "columns": [
       {
@@ -130,5 +130,5 @@
       false
     ]
   },
-  "hash": "b2c5aa02b591a406366bbfdc06cbb8d05c2c232ca2b7bf9b33216ded7a1049ce"
+  "hash": "9142c310c7daf0e2827448541d3bc8aad3f331ca08ca6f46aa91f37552ab255f"
 }
