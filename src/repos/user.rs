@@ -8,7 +8,7 @@ use crate::models::user::UserInfo;
 /// 创建用户
 pub async fn create(conn: &MySqlPool, user: &mut UserInfo) -> Result<(), AppError> {
     user.id = sqlx::query_as!(UserInfo,
-        r#"INSERT INTO user_info (nick_name, avatar, signature, age, phone, wx_open_id, salt, password, created_at, updated_at, deleted_at) 
+        r#"INSERT INTO user_info (nick_name, avatar, signature, age, phone, wx_open_id, salt, password, created_at, updated_at, deleted_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
         user.nick_name,
         user.avatar,
@@ -33,8 +33,8 @@ pub async fn create(conn: &MySqlPool, user: &mut UserInfo) -> Result<(), AppErro
 /// 更新用户信息
 pub async fn update(conn: &MySqlPool, user: &UserInfo) -> Result<(), AppError> {
     sqlx::query!(
-        r#"UPDATE user_info SET 
-           nick_name = ?, avatar = ?, signature = ?, age = ?, phone = ?, 
+        r#"UPDATE user_info SET
+           nick_name = ?, avatar = ?, signature = ?, age = ?, phone = ?,
            wx_open_id = ?, salt = ?, password = ?, updated_at = ?
            WHERE id = ?"#,
         user.nick_name,
@@ -141,8 +141,8 @@ pub async fn search_by_nickname(
 
     let users = sqlx::query_as!(
         UserInfo,
-        r#"SELECT * FROM user_info 
-           WHERE nick_name LIKE ? AND deleted_at = 0 
+        r#"SELECT * FROM user_info
+           WHERE nick_name LIKE ? AND deleted_at = 0
            ORDER BY id DESC LIMIT ? OFFSET ?"#,
         search_pattern,
         page_size as i64,

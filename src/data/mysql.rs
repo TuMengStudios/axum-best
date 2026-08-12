@@ -158,7 +158,6 @@ impl MysqlConf {
 
         Ok(pool)
     }
-
 }
 
 impl Default for MysqlConf {

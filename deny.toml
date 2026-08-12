@@ -78,6 +78,15 @@ ignore = [
     #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
     #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
     #{ crate = "a-crate-that-is-yanked@0.1.1", reason = "you can specify why you are ignoring the yanked crate" },
+    # rsa: Marvin Attack (RSA timing sidechannel), `patched = []` so no safe upgrade exists.
+    # Transitive dep of sqlx-mysql for caching_sha2_password auth; revisit when upstream fixes.
+    { id = "RUSTSEC-2023-0071", reason = "no safe upgrade available; unavoidable sqlx-mysql transitive dep" },
+    # derivative: unmaintained proc-macro, no replacement crate; transitive dep only.
+    { id = "RUSTSEC-2024-0388", reason = "unmaintained with no replacement; transitive dep" },
+    # proc-macro-error2: unmaintained proc-macro helper, used by validator_derive (validator 0.20.0).
+    { id = "RUSTSEC-2026-0173", reason = "unmaintained with no replacement; validator_derive transitive dep" },
+    # rustls-pemfile: unmaintained (deprecated by rustls project), used by ureq 3.x.
+    { id = "RUSTSEC-2025-0134", reason = "unmaintained with no replacement; ureq transitive dep" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
@@ -96,6 +105,11 @@ allow = [
     "MIT",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
+    "BSD-3-Clause",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
