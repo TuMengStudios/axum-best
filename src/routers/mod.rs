@@ -92,11 +92,7 @@ async fn inject_request_id(req: Request, next: Next) -> Response {
             resp_header.insert("Request-Id", header_value);
         }
         Err(err) => {
-            tracing::error!(
-                "failed to build Request-Id header from '{}': {}",
-                request_id,
-                err
-            );
+            tracing::error!("failed to build Request-Id header from '{}': {}", request_id, err);
         }
     }
     resp
