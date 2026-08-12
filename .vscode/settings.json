@@ -1,5 +1,8 @@
 {
     "cSpell.words": [
         "ureq"
-    ]
+    ],
+    "files.watcherExclude": {
+        "**/target/**": true
+    }
 }

@@ -12,7 +12,7 @@ develop
 ``` nex
 # zh 热重载开发测试
 # en hot reload development test
-cargo watch -x 
+cargo watch -x
 ```
 
 test
