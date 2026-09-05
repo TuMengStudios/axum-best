@@ -32,9 +32,8 @@ repos:
       - id: cargo-fmt
         name: cargo fmt
         description: Format files with rustfmt.
-        # rustfmt.toml uses nightly-only options, so nightly toolchain is required
-        # (rustup toolchain install nightly)
-        entry: bash -c 'cargo +nightly fmt -- --check'
+        # rustfmt.toml only uses stable options, so the stable toolchain is enough
+        entry: bash -c 'cargo fmt -- --check'
         language: rust
         files: \.rs$
         args: []
