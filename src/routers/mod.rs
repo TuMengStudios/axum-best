@@ -1,11 +1,7 @@
 use std::time::Duration;
 
 use axum::Router;
-use axum::extract::Request;
-use axum::http::HeaderValue;
 use axum::middleware;
-use axum::middleware::Next;
-use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
 use tower::ServiceBuilder;
@@ -15,15 +11,15 @@ use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace;
 use tower_http::trace::TraceLayer;
-use tower_request_id::RequestId;
 use tower_request_id::RequestIdLayer;
-use tracing::Instrument;
 use tracing::Level;
 
 use crate::core::state::AppState;
 use crate::handlers::foo;
 use crate::handlers::health;
 use crate::handlers::user as userHandler;
+use crate::transport::middleware::inject_request_id;
+use crate::transport::middleware::make_request_span;
 
 async fn not_implemented() -> crate::core::Result<u8> {
     Err(crate::errors::ErrNotImplemented.clone())
@@ -31,7 +27,7 @@ async fn not_implemented() -> crate::core::Result<u8> {
 
 pub fn app_routers(state: AppState) -> Router {
     let trace_layer = TraceLayer::new_for_http()
-        .make_span_with(trace::DefaultMakeSpan::new().level(Level::DEBUG))
+        .make_span_with(make_request_span)
         .on_response(trace::DefaultOnResponse::new().level(Level::INFO))
         .on_request(trace::DefaultOnRequest::new().level(Level::INFO))
         .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR))
@@ -57,43 +53,9 @@ pub fn app_routers(state: AppState) -> Router {
         .layer(layer)
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
         .layer(cors_layer)
+        // RequestIdLayer must stay outermost: it inserts the RequestId extension that
+        // `inject_request_id` reads to tag logs and response headers.
         .layer(middleware::from_fn(inject_request_id))
         .layer(RequestIdLayer)
         .with_state(state)
-}
-
-/// Middleware function that injects request ID into the response headers and tracing spans
-///
-/// This middleware:
-/// - Extracts the request ID from the request extensions (if available)
-/// - Creates a tracing span with the request ID for better observability
-/// - Adds the request ID to the response headers as "Request-Id"
-/// - Falls back to "unknown" if no request ID is found
-///
-/// # Arguments
-/// * `req` - The incoming HTTP request
-/// * `next` - The next middleware/handler in the chain
-///
-/// # Returns
-/// The HTTP response with request ID header added
-async fn inject_request_id(req: Request, next: Next) -> Response {
-    let request_id = req
-        .extensions()
-        .get::<RequestId>()
-        .map(ToString::to_string)
-        .unwrap_or_else(|| "unknown".into());
-
-    let parent = tracing::error_span!("http_request", request_id = &request_id);
-
-    let mut resp = next.run(req).instrument(parent).await;
-    let resp_header = resp.headers_mut();
-    match HeaderValue::from_str(&request_id) {
-        Ok(header_value) => {
-            resp_header.insert("Request-Id", header_value);
-        }
-        Err(err) => {
-            tracing::error!("failed to build Request-Id header from '{}': {}", request_id, err);
-        }
-    }
-    resp
 }
