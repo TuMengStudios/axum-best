@@ -1,11 +1,13 @@
 use derivative::Derivative;
 use serde::Deserialize;
 
-use crate::core::state::WeChatConf;
+use crate::conf::wechat::WeChatConf;
 use crate::data::cache::RedisConf;
 use crate::data::mysql::MysqlConf;
 use crate::logx::LogConfig;
 use crate::transport::http::HttpConf;
+
+pub mod wechat;
 
 /// Application configuration structure
 ///

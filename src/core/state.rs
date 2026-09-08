@@ -1,61 +1,28 @@
-use derivative::Derivative;
-use r2d2::PooledConnection;
-use redis::Client;
-use serde::Deserialize;
-use sqlx::MySqlPool;
-use tracing::error;
+use std::sync::Arc;
 
-use crate::core::rest::AppError;
-use crate::data::cache::RedisPool;
-use crate::errors;
+use crate::conf::AppConf;
+use crate::services::foo::FooService;
+use crate::services::user::UserService;
 
-#[derive(Deserialize, Derivative, Clone)]
-#[derivative(Debug)]
-pub struct WeChatConf {
-    pub appid: String,
-    #[derivative(Debug = "ignore")]
-    pub secret: String,
-}
-
-#[allow(unused)]
+/// 应用状态：持有所有 service 与应用配置
+///
+/// 依赖方向：handlers -> services -> repos(trait) <- data(实现)。
+/// 连接池等基础设施由 data 层的仓储实现持有，不再出现在 AppState 上。
+/// 配置以 `Arc<AppConf>` 共享：AppState 每个请求都会被克隆，
+/// Arc 保证克隆只增加引用计数，不复制整份配置。
 #[derive(Clone)]
 pub struct AppState {
-    pub db_conn: MySqlPool,
-    pub redis_pool: RedisPool,
-    pub wechat: WeChatConf,
+    pub cfg: Arc<AppConf>,
+    pub user_service: UserService,
+    pub foo_service: FooService,
 }
 
 impl AppState {
-    pub fn new(conn: MySqlPool, redis_pool: RedisPool, wechat: WeChatConf) -> AppState {
+    pub fn new(cfg: Arc<AppConf>, user_service: UserService, foo_service: FooService) -> AppState {
         AppState {
-            db_conn: conn,
-            redis_pool,
-            wechat,
+            cfg,
+            user_service,
+            foo_service,
         }
-    }
-
-    /// Returns a cloned database connection pool
-    ///
-    /// This method provides access to the application's database connection pool
-    /// by returning a cloned instance. The clone operation is lightweight as
-    /// `MySqlPool` uses Arc internally for shared ownership.
-    ///
-    /// # Returns
-    /// - `MySqlPool`: A cloned instance of the database connection pool
-    ///
-    /// # Note
-    /// - The returned pool can be used to execute database queries
-    /// - Each clone shares the same underlying connection pool
-    /// - This method does not establish new connections, it reuses existing ones
-    pub fn get_conn(&self) -> MySqlPool {
-        self.db_conn.clone()
-    }
-
-    pub fn get_redis_client(&self) -> core::result::Result<PooledConnection<Client>, AppError> {
-        let conn = self.redis_pool.get().map_err(|err| {
-            error!("get redis client error {}", err);
-            errors::ErrRedisClient.clone()
-        })?;
-        Ok(conn)
     }
 }

@@ -9,7 +9,6 @@ use tracing::info;
 use crate::core::Result;
 use crate::core::state::AppState;
 use crate::models::user::UserInfo;
-use crate::services::user::UserService;
 use crate::types::user::BindEmailRequest;
 use crate::types::user::BindEmailResponse;
 use crate::types::user::ByUserIdRequest;
@@ -33,7 +32,7 @@ pub async fn bind_email(
     Valid(Json(req)): Valid<Json<BindEmailRequest>>,
 ) -> Result<BindEmailResponse> {
     info!("user email: {req:?}");
-    UserService::bind_email(state, req).await
+    state.user_service.bind_email(req).await
 }
 
 /// Handles WeChat mini-program login
@@ -49,7 +48,7 @@ pub async fn wechat_login(
     Json(req): Json<WxMiniLoginRequest>,
 ) -> Result<WxMiniLoginResponse> {
     debug!("code {}", req.code);
-    UserService::wx_login(state, req).await
+    state.user_service.wx_login(req).await
 }
 
 pub async fn user_by_id(
@@ -57,7 +56,7 @@ pub async fn user_by_id(
     Path(req): Path<ByUserIdRequest>,
 ) -> Result<UserInfo> {
     info!("user by id {:?}", req);
-    UserService::by_id(state, req).await
+    state.user_service.by_id(req).await
 }
 
 /// Pre-validates email for binding operation
@@ -72,7 +71,7 @@ pub async fn pre_bind_email(
     Json(req): Json<PreBindEmailRequest>,
 ) -> Result<PreBindEmailResponse> {
     info!("user {}", req.email);
-    UserService::pre_bind_email(state, req).await
+    state.user_service.pre_bind_email(req).await
 }
 
 pub async fn random_user(
@@ -80,5 +79,5 @@ pub async fn random_user(
     Query(req): Query<RandomUserRequest>,
 ) -> Result<RandomUserResponse> {
     info!("create random user");
-    UserService::random_user(state, req).await
+    state.user_service.random_user(req).await
 }

@@ -14,7 +14,7 @@ axum-best 是一个基于 [Axum](https://github.com/tokio-rs/axum) 和 [Tokio](h
 - **高性能**：基于 Tokio 和 Axum 实现异步请求处理
 - **清晰的分层架构**：传输层、处理器层、服务层、仓储层、数据层职责分离
 - **MySQL + SQLx**：类型安全的数据库操作，查询在编译期检查；`.sqlx` 目录中提交了离线查询元数据
-- **Redis 缓存**：通过 `r2d2` 连接池（基于 `redis` crate）实现缓存与会话类存储
+- **Redis 缓存**：通过 `bb8-redis` 异步连接池（tokio 原生，r2d2 风格 API，基于 `redis` crate）实现缓存与会话类存储
 - **请求校验**：使用 `validator` 和 `axum-valid` 进行输入校验
 - **中间件栈**：请求 ID 链路追踪、CORS、请求/响应压缩、解压缩和超时控制
 - **结构化日志**：支持 JSON 输出与日志轮转，通过 `etc/config.toml` 配置
@@ -31,12 +31,12 @@ axum-best 是一个基于 [Axum](https://github.com/tokio-rs/axum) 和 [Tokio](h
 src/
 ├── conf/           # 从 TOML 加载配置
 ├── core/           # 核心类型：AppState、AppResult/AppError 包装器
-├── data/           # MySQL 与 Redis 连接池实现
+├── data/           # 仓储实现（SQLx/Redis）与连接池管理
 ├── errors/         # 预定义应用错误
 ├── handlers/       # HTTP 请求处理器
 ├── logx/           # 结构化日志初始化
 ├── models/         # 数据模型与实体（如 UserInfo）
-├── repos/          # 仓储模式 / 基于 SQLx 的原始数据访问
+├── repos/          # 仓储接口定义（数据访问契约）
 ├── routers/        # 路由定义与中间件栈
 ├── services/       # 业务逻辑层
 ├── srvCtx/         # 服务上下文：构建状态并启动 HTTP 服务
@@ -55,9 +55,11 @@ migrations/        # SQLx 数据库迁移脚本
 
 1. **传输层** (`src/transport/`)：TCP 监听器、HTTP 服务器设置与可复用中间件
 2. **处理器层** (`src/handlers/`)：HTTP 端点处理器，解析输入并调用服务层
-3. **服务层** (`src/services/`)：业务逻辑实现
-4. **仓储层** (`src/repos/`)：基于 SQLx 的数据访问抽象
-5. **数据层** (`src/data/`)：数据库与缓存的连接池管理
+3. **服务层** (`src/services/`)：业务逻辑实现，service 持有启动时注入的仓储接口（`Arc<dyn UserRepo>`）
+4. **仓储层** (`src/repos/`)：仓储接口定义（数据访问契约）
+5. **数据层** (`src/data/`)：基于 SQLx/Redis 的仓储实现与连接池管理
+
+依赖方向单向：`handlers → services → repos（trait）← data（实现）`；由 `srvCtx` 在启动时将具体实现注入 service 并装入 `AppState`。
 
 ## API 端点
 
@@ -145,14 +147,14 @@ cargo build --release
 - **类型**：在 `src/types/` 中定义带校验的请求/响应 DTO
 - **处理器**：在 `src/handlers/` 中添加新的 HTTP 端点
 - **服务**：在 `src/services/` 中实现业务逻辑
-- **仓储**：在 `src/repos/` 中添加数据访问方法
+- **仓储**：在 `src/repos/` 中定义数据访问 trait，在 `src/data/` 中提供实现
 - **路由**：在 `src/routers/` 中注册新路由
 
 ### 添加新功能
 
 1. 在 `src/models/` 中定义数据模型
 2. 在 `src/types/` 中定义请求/响应类型
-3. 在 `src/repos/` 中创建仓储方法
+3. 在 `src/repos/` 中定义仓储 trait，并在 `src/data/` 中实现
 4. 在 `src/services/` 中实现业务逻辑
 5. 在 `src/handlers/` 中添加 HTTP 处理器
 6. 在 `src/routers/` 中注册路由

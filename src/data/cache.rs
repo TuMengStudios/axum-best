@@ -1,12 +1,14 @@
 use std::time::Duration;
 
+use bb8_redis::RedisConnectionManager;
+use bb8_redis::bb8;
 use derivative::Derivative;
-use r2d2::Pool;
-use redis::Client;
 use serde::Deserialize;
 use tracing::info;
 
-pub type RedisPool = Pool<Client>;
+/// Redis 异步连接池（bb8，r2d2 的 tokio 版）
+pub type RedisPool = bb8::Pool<RedisConnectionManager>;
+
 /// Redis configuration structure for connecting to Redis server
 ///
 /// This struct holds the configuration parameters needed to establish
@@ -40,30 +42,26 @@ pub struct RedisConf {
 }
 
 impl RedisConf {
-    /// Initializes and returns a Redis connection pool
+    /// Initializes and returns an async Redis connection pool (bb8)
     ///
-    /// This asynchronous function creates a Redis client using the configured URL,
-    /// then builds a connection pool with the specified parameters:
+    /// Builds a `RedisConnectionManager` from the configured URL, then builds
+    /// a tokio-based pool with the specified parameters:
     /// - Maximum pool size
     /// - Connection lifetime in seconds
     /// - Minimum number of idle connections
     ///
     /// # Returns
     /// - `Ok(RedisPool)` on successful pool creation
-    /// - `Err(anyhow::Error)` if client creation or pool building fails
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - Redis client cannot be created with the provided URL
-    /// - Connection pool cannot be built with the specified parameters
+    /// - `Err(anyhow::Error)` if manager creation or pool building fails
     pub async fn init_pool(&self) -> anyhow::Result<RedisPool> {
-        let client = Client::open(self.url.as_str())
+        let manager = RedisConnectionManager::new(self.url.as_str())
             .map_err(|err| anyhow::anyhow!("build redis client error {}", err))?;
-        let pool = r2d2::Pool::builder()
+        let pool = bb8::Pool::builder()
             .max_size(self.max_size)
             .max_lifetime(Some(Duration::from_secs(self.lifetime_secs)))
             .min_idle(Some(self.min_idle))
-            .build(client)
+            .build(manager)
+            .await
             .map_err(|err| anyhow::anyhow!("build redis pool error {}", err))?;
 
         info!("Init redis client success");

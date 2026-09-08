@@ -6,7 +6,6 @@ use tracing::debug;
 
 use crate::core::Result;
 use crate::core::state::AppState;
-use crate::services::foo::FooService;
 use crate::types::foo::FooRequest;
 use crate::types::foo::FooResponse;
 
@@ -16,5 +15,5 @@ pub async fn foo(
     Valid(Query(req)): Valid<Query<FooRequest>>,
 ) -> Result<FooResponse> {
     debug!("foo request {req:?}");
-    FooService::foo(state, req).await
+    state.foo_service.foo(req).await
 }

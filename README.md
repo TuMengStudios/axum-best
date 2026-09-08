@@ -14,7 +14,7 @@ axum-best is a Rust web project template built on [Axum](https://github.com/toki
 - **High Performance**: Built on top of Tokio and Axum for asynchronous request handling
 - **Layered Architecture**: Clear separation of Transport, Handler, Service, Repository, and Data layers
 - **MySQL + SQLx**: Type-safe database operations with compile-time checked queries; offline query metadata is committed under `.sqlx`
-- **Redis Caching**: Connection pooling via `r2d2` over the `redis` crate for caching and session-like storage
+- **Redis Caching**: Async connection pooling via `bb8-redis` (tokio-native, r2d2-style API) over the `redis` crate for caching and session-like storage
 - **Request Validation**: Input validation with `validator` and `axum-valid`
 - **Middleware Stack**: Request-ID tracing, CORS, request/response compression, decompression, and timeout handling
 - **Structured Logging**: JSON log output with rotation, configurable via `etc/config.toml`
@@ -31,12 +31,12 @@ axum-best is a Rust web project template built on [Axum](https://github.com/toki
 src/
 ├── conf/           # Configuration loading from TOML
 ├── core/           # Core types: AppState, AppResult/AppError wrappers
-├── data/           # MySQL and Redis connection/pool implementations
+├── data/           # Repository implementations (SQLx/Redis) + pool management
 ├── errors/         # Predefined application errors
 ├── handlers/       # HTTP request handlers
 ├── logx/           # Structured logging initialization
 ├── models/         # Data models and entities (e.g. UserInfo)
-├── repos/          # Repository pattern / raw SQLx data access
+├── repos/          # Repository traits (data access contracts)
 ├── routers/        # Route definitions and middleware stack
 ├── services/       # Business logic layer
 ├── srvCtx/         # Server context: builds state and starts the HTTP server
@@ -55,9 +55,11 @@ migrations/        # SQLx database migration scripts
 
 1. **Transport Layer** (`src/transport/`): TCP listener, HTTP server setup, and reusable middleware
 2. **Handler Layer** (`src/handlers/`): HTTP endpoint handlers that parse input and call services
-3. **Service Layer** (`src/services/`): Business logic implementation
-4. **Repository Layer** (`src/repos/`): Data access abstraction over SQLx
-5. **Data Layer** (`src/data/`): Database and cache connection/pool management
+3. **Service Layer** (`src/services/`): Business logic implementation; each service holds repository interfaces (`Arc<dyn UserRepo>`) injected at startup
+4. **Repository Layer** (`src/repos/`): Repository traits defining data access contracts
+5. **Data Layer** (`src/data/`): Repository implementations over SQLx/Redis plus connection/pool management
+
+Dependencies point one way: `handlers → services → repos (traits) ← data (implementations)`; `srvCtx` wires concrete implementations into services and collects them in `AppState`.
 
 ## API Endpoints
 
@@ -142,14 +144,14 @@ cargo build --release
 - **Types**: Define request/response DTOs with validation in `src/types/`
 - **Handlers**: Add new HTTP endpoints in `src/handlers/`
 - **Services**: Implement business logic in `src/services/`
-- **Repositories**: Add data access methods in `src/repos/`
+- **Repositories**: Define data access traits in `src/repos/`, implement them in `src/data/`
 - **Routes**: Register new routes in `src/routers/`
 
 ### Adding New Features
 
 1. Define data models in `src/models/`
 2. Define request/response types in `src/types/`
-3. Create repository methods in `src/repos/`
+3. Define a repository trait in `src/repos/` and implement it in `src/data/`
 4. Implement business logic in `src/services/`
 5. Add HTTP handlers in `src/handlers/`
 6. Register routes in `src/routers/`
