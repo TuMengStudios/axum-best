@@ -39,7 +39,7 @@ src/
 ├── repos/          # 仓储接口定义（数据访问契约）
 ├── routers/        # 路由定义与中间件栈
 ├── services/       # 业务逻辑层
-├── srvCtx/         # 服务上下文：构建状态并启动 HTTP 服务
+├── app.rs          # 应用上下文：组装依赖、持有 AppState 与 HTTP server
 ├── transport/      # HTTP 服务器设置与中间件辅助函数
 │   └── middleware/ # 自定义中间件函数
 ├── types/          # 带校验的请求/响应 DTO
@@ -59,7 +59,7 @@ migrations/        # SQLx 数据库迁移脚本
 4. **仓储层** (`src/repos/`)：仓储接口定义（数据访问契约）
 5. **数据层** (`src/data/`)：基于 SQLx/Redis 的仓储实现与连接池管理
 
-依赖方向单向：`handlers → services → repos（trait）← data（实现）`；由 `srvCtx` 在启动时将具体实现注入 service 并装入 `AppState`。
+依赖方向单向：`handlers → services → repos（trait）← data（实现）`；由 `app::AppContext` 在启动时将具体实现注入 service 并装入 `AppState`。
 
 ## API 端点
 

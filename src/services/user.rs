@@ -33,7 +33,7 @@ struct InnerWechatLoginResponse {
 /// User service for handling user-related operations
 ///
 /// 只依赖仓储接口（`Arc<dyn UserRepo>` / `Arc<dyn KvStore>`），
-/// 不感知底层存储实现，单测时可注入 mock；具体实现由组装层（srvCtx）注入。
+/// 不感知底层存储实现，单测时可注入 mock；具体实现由组装层（app::AppContext）注入。
 #[derive(Clone)]
 pub struct UserService {
     repo: Arc<dyn UserRepo>,

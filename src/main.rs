@@ -1,5 +1,5 @@
+use axum_best::app::AppContext;
 use axum_best::conf;
-use axum_best::srvCtx::ServeContext;
 use clap::Parser;
 use human_panic::setup_panic;
 
@@ -25,12 +25,12 @@ async fn main() -> anyhow::Result<()> {
     let cfg = conf::AppConf::from_path(&args.conf)
         .map_err(|err| anyhow::anyhow!("parser conf file error {:?}", err))?;
 
-    let mut serve_context = ServeContext::new(cfg)
+    let app_context = AppContext::new(cfg)
         .await
-        .map_err(|err| anyhow::anyhow!("build server context error {}", err))?;
+        .map_err(|err| anyhow::anyhow!("build app context error {}", err))?;
 
     //
-    serve_context
+    app_context
         .start()
         .await
         .map_err(|err| anyhow::anyhow!("start server error {}", err))?;

@@ -39,7 +39,7 @@ src/
 ├── repos/          # Repository traits (data access contracts)
 ├── routers/        # Route definitions and middleware stack
 ├── services/       # Business logic layer
-├── srvCtx/         # Server context: builds state and starts the HTTP server
+├── app.rs          # App context: wires services into AppState, owns the HTTP server
 ├── transport/      # HTTP server setup and middleware helpers
 │   └── middleware/ # Custom middleware functions
 ├── types/          # Request/response DTOs with validation
@@ -59,7 +59,7 @@ migrations/        # SQLx database migration scripts
 4. **Repository Layer** (`src/repos/`): Repository traits defining data access contracts
 5. **Data Layer** (`src/data/`): Repository implementations over SQLx/Redis plus connection/pool management
 
-Dependencies point one way: `handlers → services → repos (traits) ← data (implementations)`; `srvCtx` wires concrete implementations into services and collects them in `AppState`.
+Dependencies point one way: `handlers → services → repos (traits) ← data (implementations)`; `app::AppContext` wires concrete implementations into services and collects them in `AppState`.
 
 ## API Endpoints
 
