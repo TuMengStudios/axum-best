@@ -1,12 +1,12 @@
-//! Request timeout middleware with per-path exemptions
+//! Request timeout middleware with per-path exclusions
 //!
 //! Enforces a time budget on request handling by reusing
 //! [`tower_http::timeout::TimeoutLayer`], which answers a bare
 //! `408 Request Timeout` (empty body) when the budget elapses. Requests whose
-//! path matches one of the configured exempt prefixes skip the timeout
-//! entirely, for long-running endpoints such as SSE streams, file uploads or
-//! reports. Matching is segment-aware: `/stream` exempts `/stream` and
-//! `/stream/1`, but not `/streaming`.
+//! path matches one of the excluded prefixes skip the timeout entirely, for
+//! long-running endpoints such as SSE streams, file uploads or reports.
+//! Matching is segment-aware: `/stream` excludes `/stream` and `/stream/1`,
+//! but not `/streaming`.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -24,24 +24,24 @@ use tower_http::timeout::TimeoutLayer;
 #[derive(Clone)]
 pub struct TimeoutConfig {
     duration: Duration,
-    exempt_prefixes: Arc<[String]>,
+    excluded_prefixes: Arc<[String]>,
 }
 
 impl TimeoutConfig {
     pub fn new(duration: Duration) -> TimeoutConfig {
         TimeoutConfig {
             duration,
-            exempt_prefixes: Arc::from([]),
+            excluded_prefixes: Arc::from([]),
         }
     }
 
     /// Registers path prefixes that skip the timeout
-    pub fn with_exempt_prefixes<I, P>(mut self, prefixes: I) -> TimeoutConfig
+    pub fn with_excluded_prefixes<I, P>(mut self, prefixes: I) -> TimeoutConfig
     where
         I: IntoIterator<Item = P>,
         P: Into<String>,
     {
-        self.exempt_prefixes = prefixes
+        self.excluded_prefixes = prefixes
             .into_iter()
             .map(Into::into)
             .collect::<Vec<_>>()
@@ -55,7 +55,7 @@ impl TimeoutConfig {
 pub async fn middleware(State(config): State<TimeoutConfig>, req: Request, next: Next) -> Response {
     let path = req.uri().path().to_owned();
 
-    if is_exempt(&path, &config.exempt_prefixes) {
+    if super::is_excluded(&path, &config.excluded_prefixes) {
         return next.run(req).await;
     }
 
@@ -69,15 +69,6 @@ pub async fn middleware(State(config): State<TimeoutConfig>, req: Request, next:
         Ok(resp) => resp,
         Err(never) => match never {},
     }
-}
-
-/// Segment-aware prefix match: `/stream` exempts `/stream` and `/stream/1`
-/// but not `/streaming`. A bare `/` exempts everything.
-fn is_exempt(path: &str, prefixes: &[String]) -> bool {
-    prefixes.iter().any(|prefix| {
-        let prefix = prefix.trim_end_matches('/');
-        path == prefix || path.starts_with(&format!("{prefix}/"))
-    })
 }
 
 #[cfg(test)]
@@ -110,7 +101,7 @@ mod tests {
     fn app(config: TimeoutConfig) -> Router {
         Router::new()
             .route("/slow", get(slow_handler))
-            .route("/exempt/slow", get(slow_handler))
+            .route("/excluded/slow", get(slow_handler))
             .route("/slower", get(slow_handler))
             .layer(middleware::from_fn_with_state(config, middleware))
     }
@@ -123,17 +114,21 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn exempt_prefix_bypasses_the_timeout() {
+    async fn excluded_prefix_bypasses_the_timeout() {
         let config =
-            TimeoutConfig::new(Duration::from_millis(20)).with_exempt_prefixes(["/exempt"]);
-        let resp = app(config).oneshot(request("/exempt/slow")).await.unwrap();
+            TimeoutConfig::new(Duration::from_millis(20)).with_excluded_prefixes(["/excluded"]);
+        let resp = app(config)
+            .oneshot(request("/excluded/slow"))
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
     }
 
     #[tokio::test]
     async fn prefix_match_does_not_leak_into_sibling_paths() {
-        // "/slow" must not accidentally exempt "/slower"
-        let config = TimeoutConfig::new(Duration::from_millis(20)).with_exempt_prefixes(["/slow"]);
+        // "/slow" must not accidentally exclude "/slower"
+        let config =
+            TimeoutConfig::new(Duration::from_millis(20)).with_excluded_prefixes(["/slow"]);
         let resp = app(config).oneshot(request("/slower")).await.unwrap();
         assert_eq!(resp.status(), StatusCode::REQUEST_TIMEOUT);
     }

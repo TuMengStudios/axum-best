@@ -21,13 +21,28 @@ pub struct HttpConf {
     #[default(8080)]
     pub port: u16,
 
-    /// Path prefixes exempted from the request timeout middleware
+    /// Request time budget enforced by the timeout middleware, in seconds
     ///
-    /// Segment-aware prefix match: "/stream" exempts "/stream" and "/stream/1"
+    /// Defaults to 30 seconds. The budget covers request handling including
+    /// response compression, but not CORS/request-id bookkeeping.
+    #[default(30)]
+    pub timeout_secs: u64,
+
+    /// Path prefixes excluded from the request timeout middleware
+    ///
+    /// Segment-aware prefix match: "/stream" excludes "/stream" and "/stream/1"
     /// but not "/streaming". Useful for SSE streams, file uploads or reports.
-    /// Defaults to an empty list (no exemptions).
+    /// Defaults to an empty list (no exclusions).
     #[serde(default)]
-    pub timeout_exempt_paths: Vec<String>,
+    pub timeout_excluded_paths: Vec<String>,
+
+    /// Path prefixes whose responses skip the compression middleware
+    ///
+    /// Segment-aware prefix match, same semantics as `timeout_excluded_paths`.
+    /// Useful for endpoints that stream (SSE) or already emit compressed
+    /// content. Defaults to an empty list (compress everything compressible).
+    #[serde(default)]
+    pub compression_excluded_paths: Vec<String>,
 }
 
 impl HttpConf {
