@@ -16,7 +16,7 @@ axum-best 是一个基于 [Axum](https://github.com/tokio-rs/axum) 和 [Tokio](h
 - **MySQL + SQLx**：类型安全的数据库操作，查询在编译期检查；`.sqlx` 目录中提交了离线查询元数据
 - **Redis 缓存**：通过 `bb8-redis` 异步连接池（tokio 原生，r2d2 风格 API，基于 `redis` crate）实现缓存与会话类存储
 - **请求校验**：使用 `validator` 和 `axum-valid` 进行输入校验
-- **中间件栈**：请求 ID 链路追踪、CORS、请求/响应压缩、解压缩和超时控制
+- **中间件栈**：请求 ID 链路追踪、CORS、请求/响应压缩、解压缩和超时控制（支持按路径排除，见 `etc/config.toml` 的 `http.timeout_exempt_paths`）
 - **结构化日志**：支持 JSON 输出与日志轮转，通过 `etc/config.toml` 配置
 - **微信小程序登录**：占位式登录流程，通过微信 code 与 `openid` 映射到已有用户
 - **邮箱绑定**：带验证码生成的占位式邮箱绑定流程

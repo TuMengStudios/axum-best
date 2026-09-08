@@ -20,6 +20,14 @@ pub struct HttpConf {
     /// Defaults to 8080, which is a common development port
     #[default(8080)]
     pub port: u16,
+
+    /// Path prefixes exempted from the request timeout middleware
+    ///
+    /// Segment-aware prefix match: "/stream" exempts "/stream" and "/stream/1"
+    /// but not "/streaming". Useful for SSE streams, file uploads or reports.
+    /// Defaults to an empty list (no exemptions).
+    #[serde(default)]
+    pub timeout_exempt_paths: Vec<String>,
 }
 
 impl HttpConf {

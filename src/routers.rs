@@ -8,7 +8,6 @@ use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::decompression::RequestDecompressionLayer;
-use tower_http::timeout::TimeoutLayer;
 use tower_http::trace;
 use tower_http::trace::TraceLayer;
 use tower_request_id::RequestIdLayer;
@@ -18,8 +17,9 @@ use crate::core::state::AppState;
 use crate::handlers::foo;
 use crate::handlers::health;
 use crate::handlers::user as userHandler;
-use crate::transport::middleware::inject_request_id;
-use crate::transport::middleware::make_request_span;
+use crate::transport::middleware::request_id::inject_request_id;
+use crate::transport::middleware::request_id::make_request_span;
+use crate::transport::middleware::timeout;
 
 async fn not_implemented() -> crate::core::Result<u8> {
     Err(crate::errors::ErrNotImplemented.clone())
@@ -51,7 +51,11 @@ pub fn app_routers(state: AppState) -> Router {
         .route("/health", get(health::health))
         .fallback(not_implemented)
         .layer(layer)
-        .layer(TimeoutLayer::new(Duration::from_secs(30)))
+        .layer(middleware::from_fn_with_state(
+            timeout::TimeoutConfig::new(Duration::from_secs(30))
+                .with_exempt_prefixes(state.cfg.http.timeout_exempt_paths.iter().cloned()),
+            timeout::middleware,
+        ))
         .layer(cors_layer)
         // RequestIdLayer must stay outermost: it inserts the RequestId extension that
         // `inject_request_id` reads to tag logs and response headers.

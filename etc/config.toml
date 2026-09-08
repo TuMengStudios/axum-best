@@ -68,6 +68,12 @@ listen = "0.0.0.0"
 # Common ports: 80 (HTTP), 443 (HTTPS), 8080 (development)
 port = 8080
 
+# Path prefixes exempted from the request timeout middleware (30s budget)
+# Segment-aware prefix match: "/stream" exempts "/stream" and "/stream/1"
+# but not "/streaming". Useful for SSE streams, file uploads or reports.
+# Defaults to an empty list (no exemptions).
+timeout_exempt_paths = []
+
 
 [mysql]
 # MySQL database configuration section

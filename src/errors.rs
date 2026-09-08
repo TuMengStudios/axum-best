@@ -11,6 +11,12 @@ lazy_static! {
     /// Bad request - invalid request parameters
     pub static ref ErrBadRequest: AppError =
         AppError::new(StatusCode::BAD_REQUEST, 14000, "Bad Request Params");
+
+    /// Request timeout - the request exceeded its time budget (returned by
+    /// the timeout middleware as a bare 408; also usable by handlers that
+    /// enforce their own budgets)
+    pub static ref ErrRequestTimeout: AppError =
+        AppError::new(StatusCode::REQUEST_TIMEOUT, 40800, "Request Timeout");
 }
 
 lazy_static! {
