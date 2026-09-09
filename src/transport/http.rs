@@ -50,7 +50,7 @@ impl HttpConf {
     ///
     /// # Returns
     /// A string containing the formatted address (e.g., "0.0.0.0:8080")
-    pub fn address(&self) -> String {
+    fn address(&self) -> String {
         format!("{}:{}", self.listen, self.port)
     }
 }

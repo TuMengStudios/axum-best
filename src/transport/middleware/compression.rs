@@ -54,7 +54,7 @@ pub async fn middleware(
 ) -> Response {
     let path = req.uri().path().to_owned();
 
-    if super::is_excluded(&path, &config.excluded_prefixes) {
+    if super::prefix::is_excluded(&path, &config.excluded_prefixes) {
         return next.run(req).await;
     }
 

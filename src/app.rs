@@ -16,25 +16,23 @@ use crate::services::user::UserService;
 
 /// Application context: the single assembly point of the whole app
 ///
-/// Owns everything long-lived: the shared config (`Arc<AppConf>`), the fully
-/// wired `AppState` (all services) and the HTTP server (`Router`).
-/// `new` assembles the dependency graph, `start` binds the listener and
-/// serves requests.
+/// Owns everything long-lived: the shared config (`Arc<AppConf>`), the HTTP
+/// server (`Router`, which owns the fully wired `AppState` after assembly)
+/// and a MySQL pool handle for deterministic shutdown. `new` assembles the
+/// dependency graph, `start` binds the listener and serves requests.
 ///
-/// It also keeps a direct MySQL pool handle (an Arc clone of what the
-/// repository holds) as a private lifecycle detail, so `start` can close it
-/// deterministically once the server has drained. The bb8 redis pool has no
-/// close API and lives solely inside its repository; dropping the context
-/// tears it down.
+/// The bb8 redis pool has no close API and lives solely inside its
+/// repository (part of the router's state); dropping the context tears it
+/// down.
 pub struct AppContext {
     cfg: Arc<AppConf>,
-    app_state: AppState,
     router: Router,
     db_pool: MySqlPool,
     /// Guard for the non-blocking log worker; must be kept alive for the
     /// lifetime of the server so log flushing on drop happens correctly.
-    /// Declared last on purpose: fields drop in order, so services (and the
-    /// redis pool inside) are gone before logs are flushed.
+    /// Declared last on purpose: fields drop in order, so the router (with
+    /// the services and the redis pool inside) is gone before logs are
+    /// flushed.
     #[allow(dead_code)]
     work_guard: WorkerGuard,
 }
@@ -66,21 +64,14 @@ impl AppContext {
             Arc::new(RedisKvStore::new(redis_client.clone())),
         );
         let app_state = AppState::new(cfg.clone(), user_service, FooService);
-        let router = routers::app_routers(app_state.clone());
+        let router = routers::app_routers(app_state);
 
         Ok(AppContext {
             work_guard: guard,
             cfg,
-            app_state,
             router,
             db_pool: db_conn,
         })
-    }
-
-    /// Shared application state (all services + config)
-    #[allow(unused)]
-    pub fn state(&self) -> &AppState {
-        &self.app_state
     }
 
     /// Binds the HTTP listener and serves requests until the server exits

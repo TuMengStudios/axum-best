@@ -211,7 +211,7 @@ impl DbManager {
     }
 }
 
-pub fn covert_error(err: sqlx::Error) -> AppError {
+pub(super) fn covert_error(err: sqlx::Error) -> AppError {
     match err {
         sqlx::Error::Configuration(e) => {
             error!("db config error: {:?}", e);

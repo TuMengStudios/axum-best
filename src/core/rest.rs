@@ -4,6 +4,17 @@ use axum::response::IntoResponse;
 use derivative::Derivative;
 use serde::Serialize;
 
+/// 统一的 handler/service 返回类型：`Ok(AppResult<T>)` / `Err(AppError)`
+pub type Result<T> = core::result::Result<AppResult<T>, AppError>;
+
+/// ok!(a) equal Ok(AppResult(a))
+#[macro_export]
+macro_rules! ok {
+    ($expr:expr) => {
+        Ok($crate::core::rest::AppResult($expr))
+    };
+}
+
 #[allow(unused)]
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
