@@ -1,15 +1,14 @@
 use std::sync::Arc;
 
-use serde::Deserialize;
 use tracing::debug;
 use tracing::info;
 
 use crate::core::Result;
-use crate::errors;
 use crate::models::user::UserInfo;
 use crate::ok;
 use crate::repos::kv::KvStore;
 use crate::repos::user::UserRepo;
+use crate::repos::wechat::WechatRepo;
 use crate::types::user::BindEmailRequest;
 use crate::types::user::BindEmailResponse;
 use crate::types::user::ByUserIdRequest;
@@ -22,13 +21,6 @@ use crate::types::user::WxMiniLoginRequest;
 use crate::types::user::WxMiniLoginResponse;
 use crate::utils;
 
-#[derive(Debug, Deserialize)]
-/// Response structure for WeChat login API
-struct InnerWechatLoginResponse {
-    /// WeChat user's unique identifier
-    pub openid: String,
-}
-
 /// User service for handling user-related operations
 ///
 /// 只依赖仓储接口（`Arc<dyn UserRepo>` / `Arc<dyn KvStore>`），
@@ -37,17 +29,17 @@ struct InnerWechatLoginResponse {
 pub struct UserService {
     repo: Arc<dyn UserRepo>,
     kv: Arc<dyn KvStore>,
-    http_client: reqwest::Client,
+    wechat: Arc<dyn WechatRepo>,
 }
 
 impl UserService {
     /// Creates a service with injected repository implementations
-    pub fn new(repo: Arc<dyn UserRepo>, kv: Arc<dyn KvStore>) -> UserService {
-        UserService {
-            repo,
-            kv,
-            http_client: reqwest::Client::new(),
-        }
+    pub fn new(
+        repo: Arc<dyn UserRepo>,
+        kv: Arc<dyn KvStore>,
+        wechat: Arc<dyn WechatRepo>,
+    ) -> UserService {
+        UserService { repo, kv, wechat }
     }
 
     /// Pre-binds an email address by generating and storing a validation code
@@ -74,24 +66,7 @@ impl UserService {
     /// * `Result<WxMiniLoginResponse>` - Login response with user authentication info
     pub async fn wx_login(&self, req: WxMiniLoginRequest) -> Result<WxMiniLoginResponse> {
         debug!("wx login {}", req.code);
-        // Not Implemented Yet
-        let resp = self
-            .http_client
-            .get("https://exmaple.com/foo/baz")
-            .send()
-            .await
-            .map_err(|err| errors::ErrWechatLogin.with_cause(err, "call WeChat API"))?
-            .error_for_status()
-            .map_err(|err| {
-                errors::ErrWechatLogin.with_cause(err, "WeChat API returned an error status")
-            })?
-            .json::<InnerWechatLoginResponse>()
-            .await
-            .map_err(|err| {
-                errors::ErrUnmarshalJSON.with_cause(err, "decode WeChat API response")
-            })?;
-
-        let open_id = resp.openid.clone();
+        let open_id = self.wechat.open_id(&req.code).await?;
         let user = self.repo.get_by_wx_open_id(&open_id).await?;
         info!("user info {:?}", user);
         let resp = WxMiniLoginResponse {

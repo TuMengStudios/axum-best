@@ -10,6 +10,7 @@ use crate::conf::AppConf;
 use crate::core::state::AppState;
 use crate::data::kv_store::RedisKvStore;
 use crate::data::user_repo::MySqlUserRepo;
+use crate::data::wechat_repo::WechatApiRepo;
 use crate::routers;
 use crate::services::foo::FooService;
 use crate::services::user::UserService;
@@ -71,6 +72,7 @@ impl AppContext {
         let user_service = UserService::new(
             Arc::new(MySqlUserRepo::new(db_conn.clone())),
             Arc::new(RedisKvStore::new(redis_client.clone())),
+            Arc::new(WechatApiRepo::new(&cfg.wechat)),
         );
         let app_state = AppState::new(cfg.clone(), user_service, FooService);
         let router = routers::app_routers(app_state);

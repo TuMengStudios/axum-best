@@ -38,7 +38,7 @@ pub struct AppConf {
     /// redis config
     pub redis: RedisConf,
 
-    /// 微信小程序配置：暂无消费组件，随客户端落地再放开可见性并迁移位置
+    /// 微信小程序配置
     pub(crate) wechat: WeChatConf,
 }
 
