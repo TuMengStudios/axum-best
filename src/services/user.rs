@@ -66,7 +66,7 @@ impl UserService {
     /// * `Result<WxMiniLoginResponse>` - Login response with user authentication info
     pub async fn wx_login(&self, req: WxMiniLoginRequest) -> Result<WxMiniLoginResponse> {
         debug!("wx login {}", req.code);
-        let open_id = self.wechat.open_id(&req.code).await?;
+        let open_id = self.wechat.exchange_code_for_open_id(&req.code).await?;
         let user = self.repo.get_by_wx_open_id(&open_id).await?;
         info!("user info {:?}", user);
         let resp = WxMiniLoginResponse {

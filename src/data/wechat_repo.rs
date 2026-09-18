@@ -32,7 +32,7 @@ impl WechatApiRepo {
 
 #[async_trait]
 impl WechatRepo for WechatApiRepo {
-    async fn open_id(&self, code: &str) -> Result<String, AppError> {
+    async fn exchange_code_for_open_id(&self, code: &str) -> Result<String, AppError> {
         let response = self
             .client
             .get(CODE_TO_SESSION_URL)
