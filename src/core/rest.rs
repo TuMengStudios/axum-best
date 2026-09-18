@@ -26,11 +26,11 @@ pub struct AppError {
 }
 
 impl AppError {
-    pub fn new(status: StatusCode, err_no: i64, err_msg: &str) -> Self {
+    pub fn new(status: StatusCode, err_no: i64, err_msg: impl Into<String>) -> Self {
         AppError {
             status,
             err_no,
-            err_msg: err_msg.to_string(),
+            err_msg: err_msg.into(),
         }
     }
 }

@@ -21,6 +21,15 @@ use crate::services::user::UserService;
 /// and a MySQL pool handle for deterministic shutdown. `new` assembles the
 /// dependency graph, `start` binds the listener and serves requests.
 ///
+/// There is deliberately no `app_state` field. The assembled `AppState` is
+/// moved into the router, and every consumer receives it as a parameter at
+/// its own entry point: handlers extract it via `State<AppState>`, and
+/// background tasks take a clone at spawn time. A stored copy would have no
+/// consumer, and would give the redis pool a second owner, weakening the
+/// drop-order guarantee documented on `work_guard`. If code ever genuinely
+/// needs to reach services after assembly, add a purpose-built handle for
+/// that specific need rather than a general accessor.
+///
 /// The bb8 redis pool has no close API and lives solely inside its
 /// repository (part of the router's state); dropping the context tears it
 /// down.
