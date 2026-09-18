@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE user_info SET\n               nick_name = ?, avatar = ?, signature = ?, age = ?, phone = ?,\n               wx_open_id = ?, salt = ?, password = ?, updated_at = ?\n               WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": []
+  },
+  "hash": "baca1faabbc3232796994553ab1e8acc9b136b8d8d169935a336074ac37b9fce"
+}
