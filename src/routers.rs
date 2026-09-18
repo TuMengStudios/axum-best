@@ -5,7 +5,6 @@ use axum::middleware;
 use axum::routing::get;
 use axum::routing::post;
 use tower::ServiceBuilder;
-use tower_http::cors::CorsLayer;
 use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::trace;
 use tower_http::trace::TraceLayer;
@@ -17,6 +16,7 @@ use crate::handlers::foo;
 use crate::handlers::health;
 use crate::handlers::user as userHandler;
 use crate::transport::middleware::compression;
+use crate::transport::middleware::cors;
 use crate::transport::middleware::request_id::inject_request_id;
 use crate::transport::middleware::request_id::make_request_span;
 use crate::transport::middleware::timeout;
@@ -33,8 +33,6 @@ pub fn app_routers(state: AppState) -> Router {
         .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR))
         .on_eos(trace::DefaultOnEos::new().level(Level::INFO))
         .on_body_chunk(trace::DefaultOnBodyChunk::new());
-
-    let cors_layer = CorsLayer::new().allow_credentials(true);
 
     let layer = ServiceBuilder::new()
         .layer(RequestDecompressionLayer::new())
@@ -71,7 +69,7 @@ pub fn app_routers(state: AppState) -> Router {
                 .with_excluded_prefixes(state.cfg.http.timeout_excluded_paths.iter().cloned()),
             timeout::middleware,
         ))
-        .layer(cors_layer)
+        .layer(cors::layer())
         // RequestIdLayer must stay outermost: it inserts the RequestId extension that
         // `inject_request_id` reads to tag logs and response headers.
         .layer(middleware::from_fn(inject_request_id))
