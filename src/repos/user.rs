@@ -3,6 +3,20 @@ use async_trait::async_trait;
 use crate::core::rest::AppError;
 use crate::models::user::UserInfo;
 
+/// Type-safe description of a partial user update.
+#[derive(Debug, Clone)]
+pub enum UserUpdate {
+    NickName(String),
+    Avatar(String),
+    Signature(String),
+    Age(u8),
+    Phone(String),
+    WxOpenId(String),
+    Salt(String),
+    Password(String),
+    UpdatedAt(i64),
+}
+
 /// 用户仓储接口：只定义数据访问契约，具体实现由 data 层提供
 ///
 /// service 层仅依赖本接口（`Arc<dyn UserRepo>`），不感知底层存储，
@@ -45,5 +59,5 @@ pub trait UserRepo: Send + Sync {
     ) -> Result<Vec<UserInfo>, AppError>;
 
     /// 更新用户部分信息（动态构建更新语句）
-    async fn update_partial(&self, id: i64, updates: &[(&str, &str)]) -> Result<(), AppError>;
+    async fn update_partial(&self, id: i64, updates: &[UserUpdate]) -> Result<(), AppError>;
 }

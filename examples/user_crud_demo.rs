@@ -6,6 +6,7 @@ use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
 use axum_best::models::user::UserInfo;
+use axum_best::repos::user::UserUpdate;
 
 /// 获取当前时间戳
 fn current_timestamp() -> Result<i64, Box<dyn std::error::Error>> {
@@ -75,7 +76,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 5. 部分更新用户信息
     println!("5. 部分更新用户信息:");
-    let updates = vec![("nick_name", "部分更新昵称"), ("signature", "部分更新签名")];
+    let updates = vec![
+        UserUpdate::NickName("部分更新昵称".to_string()),
+        UserUpdate::Signature("部分更新签名".to_string()),
+    ];
     // 在实际使用中调用: repo.update_partial(new_user.id, &updates).await?;
     println!("   部分更新字段: {:?}\n", updates);
 
@@ -115,7 +119,7 @@ mod tests {
 
     #[test]
     fn test_current_timestamp() {
-        let timestamp = current_timestamp();
+        let timestamp = current_timestamp().expect("system time must be after UNIX_EPOCH");
         assert!(timestamp > 0);
     }
 }

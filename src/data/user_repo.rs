@@ -6,6 +6,7 @@ use super::mysql::covert_error;
 use crate::core::rest::AppError;
 use crate::models::user::UserInfo;
 use crate::repos::user::UserRepo;
+use crate::repos::user::UserUpdate;
 
 /// 基于 MySQL/SQLx 的用户仓储实现
 pub struct MySqlUserRepo {
@@ -174,20 +175,31 @@ impl UserRepo for MySqlUserRepo {
     }
 
     /// 更新用户部分信息（使用QueryBuilder动态构建更新语句）
-    async fn update_partial(&self, id: i64, updates: &[(&str, &str)]) -> Result<(), AppError> {
+    async fn update_partial(&self, id: i64, updates: &[UserUpdate]) -> Result<(), AppError> {
         if updates.is_empty() {
             return Ok(());
         }
 
         let mut query_builder = QueryBuilder::new("UPDATE user_info SET ");
 
-        for (i, (field, value)) in updates.iter().enumerate() {
+        for (i, update) in updates.iter().enumerate() {
             if i > 0 {
                 query_builder.push(", ");
             }
-            query_builder.push(field);
-            query_builder.push(" = ");
-            query_builder.push_bind(value);
+
+            match update {
+                UserUpdate::NickName(value) => query_builder.push("nick_name = ").push_bind(value),
+                UserUpdate::Avatar(value) => query_builder.push("avatar = ").push_bind(value),
+                UserUpdate::Signature(value) => query_builder.push("signature = ").push_bind(value),
+                UserUpdate::Age(value) => query_builder.push("age = ").push_bind(value),
+                UserUpdate::Phone(value) => query_builder.push("phone = ").push_bind(value),
+                UserUpdate::WxOpenId(value) => query_builder.push("wx_open_id = ").push_bind(value),
+                UserUpdate::Salt(value) => query_builder.push("salt = ").push_bind(value),
+                UserUpdate::Password(value) => query_builder.push("password = ").push_bind(value),
+                UserUpdate::UpdatedAt(value) => {
+                    query_builder.push("updated_at = ").push_bind(value)
+                }
+            };
         }
 
         query_builder.push(" WHERE id = ");
