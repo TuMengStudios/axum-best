@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use serde::Deserialize;
 use tracing::debug;
-use tracing::error;
 use tracing::info;
 
 use crate::core::Result;
@@ -38,12 +37,17 @@ struct InnerWechatLoginResponse {
 pub struct UserService {
     repo: Arc<dyn UserRepo>,
     kv: Arc<dyn KvStore>,
+    http_client: reqwest::Client,
 }
 
 impl UserService {
     /// Creates a service with injected repository implementations
     pub fn new(repo: Arc<dyn UserRepo>, kv: Arc<dyn KvStore>) -> UserService {
-        UserService { repo, kv }
+        UserService {
+            repo,
+            kv,
+            http_client: reqwest::Client::new(),
+        }
     }
 
     /// Pre-binds an email address by generating and storing a validation code
@@ -71,17 +75,20 @@ impl UserService {
     pub async fn wx_login(&self, req: WxMiniLoginRequest) -> Result<WxMiniLoginResponse> {
         debug!("wx login {}", req.code);
         // Not Implemented Yet
-        let resp = ureq::get("https://exmaple.com/foo/baz")
-            .call()
+        let resp = self
+            .http_client
+            .get("https://exmaple.com/foo/baz")
+            .send()
+            .await
+            .map_err(|err| errors::ErrWechatLogin.with_cause(err, "call WeChat API"))?
+            .error_for_status()
             .map_err(|err| {
-                error!("call wechat api error {}", err);
-                errors::ErrWechatLogin.clone()
+                errors::ErrWechatLogin.with_cause(err, "WeChat API returned an error status")
             })?
-            .body_mut()
-            .read_json::<InnerWechatLoginResponse>()
+            .json::<InnerWechatLoginResponse>()
+            .await
             .map_err(|err| {
-                error!("unmarshal wechat response {}", err);
-                errors::ErrUnmarshalJSON.clone()
+                errors::ErrUnmarshalJSON.with_cause(err, "decode WeChat API response")
             })?;
 
         let open_id = resp.openid.clone();
