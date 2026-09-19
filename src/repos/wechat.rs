@@ -2,9 +2,9 @@ use async_trait::async_trait;
 
 use crate::core::rest::AppError;
 
-/// 微信 `jscode2session` 返回的会话信息。
+/// Session information returned by WeChat `jscode2session`.
 ///
-/// `session_key` 只供服务端后续校验/解密使用，禁止返回给客户端或写入日志。
+/// `session_key` is only used for server-side verification/decryption and must never be returned to clients or written to logs.
 #[derive(Debug, Clone)]
 pub struct WechatSession {
     pub app_id: String,
@@ -13,9 +13,9 @@ pub struct WechatSession {
     pub union_id: Option<String>,
 }
 
-/// 微信小程序接口契约：使用登录 code 换取会话信息。
+/// WeChat mini-program API contract: exchanges a login code for session information.
 #[async_trait]
 pub trait WechatRepo: Send + Sync {
-    /// 调用 `jscode2session`，使用登录 code 换取用户 OpenID。
+    /// Calls `jscode2session` to exchange the login code for the user's OpenID.
     async fn exchange_login_code(&self, code: &str) -> Result<WechatSession, AppError>;
 }

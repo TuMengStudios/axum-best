@@ -4,12 +4,13 @@ use crate::conf::AppConf;
 use crate::services::foo::FooService;
 use crate::services::user::UserService;
 
-/// 应用状态：持有所有 service 与应用配置
+/// Application state: owns all services and the application configuration.
 ///
-/// 依赖方向：handlers -> services -> repos(trait) <- data(实现)。
-/// 连接池等基础设施由 data 层的仓储实现持有，不再出现在 AppState 上。
-/// 配置以 `Arc<AppConf>` 共享：AppState 每个请求都会被克隆，
-/// Arc 保证克隆只增加引用计数，不复制整份配置。
+/// Dependency direction: handlers -> services -> repos(trait) <- data(implementations).
+/// Infrastructure such as connection pools is owned by the data-layer repository
+/// implementations and no longer appears on AppState.
+/// The configuration is shared via `Arc<AppConf>`: AppState is cloned on every request,
+/// and the Arc ensures cloning only bumps the reference count instead of copying the config.
 #[derive(Clone)]
 pub struct AppState {
     pub cfg: Arc<AppConf>,

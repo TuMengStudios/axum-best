@@ -104,20 +104,20 @@ impl UserInfo {
         self
     }
 
-    /// 生成一个随机的 UserInfo 实例
+    /// Generates a random UserInfo instance
     ///
-    /// # 示例
+    /// # Example
     /// ```
     /// use axum_best::models::user::UserInfo;
     ///
     /// let random_user = UserInfo::random();
-    /// println!("随机用户: {:?}", random_user);
+    /// println!("random user: {:?}", random_user);
     /// ```
     pub fn random() -> Self {
         let mut rng = rand::rng();
         let timestamp = chrono::Utc::now().timestamp();
 
-        // 扩展的随机昵称列表，增加更多选择
+        // Extended random nickname list for more variety
         let nick_names = vec![
             "张三",
             "李四",
@@ -172,7 +172,7 @@ impl UserInfo {
             "机器人",
         ];
 
-        // 扩展的随机签名列表，增加更多选择
+        // Extended random signature list for more variety
         let signatures = vec![
             "热爱编程的程序员",
             "喜欢探索新技术",
@@ -212,7 +212,7 @@ impl UserInfo {
             "追求卓越品质",
         ];
 
-        // 生成唯一性更高的昵称，结合随机后缀
+        // Generate a more unique nickname by appending a random suffix
         let base_nick_name = nick_names[rng.random_range(0..nick_names.len())];
         let digits = b"0123456789";
         let nick_name_suffix: String = (0..4)
@@ -220,7 +220,7 @@ impl UserInfo {
             .collect();
         let nick_name = format!("{}{}", base_nick_name, nick_name_suffix);
 
-        // 生成唯一性更高的签名，结合随机前缀或后缀
+        // Generate a more unique signature with a random prefix or suffix
         let base_signature = signatures[rng.random_range(0..signatures.len())];
         let signature_variants = [
             base_signature.to_string(),
@@ -230,24 +230,24 @@ impl UserInfo {
         ];
         let signature = signature_variants[rng.random_range(0..signature_variants.len())].clone();
 
-        // 生成完全随机的头像URL
+        // Generate a fully random avatar URL
         let avatar_chars = b"abcdefghijklmnopqrstuvwxyz0123456789";
         let avatar_id: String = (0..16)
             .map(|_| avatar_chars[rng.random_range(0..avatar_chars.len())] as char)
             .collect();
 
-        // 随机盐值
+        // Random salt
         let alphanumeric = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         let salt: String = (0..16)
             .map(|_| alphanumeric[rng.random_range(0..alphanumeric.len())] as char)
             .collect();
 
-        // 随机密码哈希
+        // Random password hash
         let password: String = (0..32)
             .map(|_| alphanumeric[rng.random_range(0..alphanumeric.len())] as char)
             .collect();
 
-        // 随机手机号
+        // Random phone number
         let phone = format!(
             "1{}{}{}{}{}{}{}{}{}{}",
             rng.random_range(3..=9),
@@ -271,7 +271,7 @@ impl UserInfo {
             phone,
             salt,
             password,
-            created_at: timestamp - rng.random_range(0..31536000), // 一年内的随机时间
+            created_at: timestamp - rng.random_range(0..31536000), // random time within the past year
             updated_at: timestamp,
             deleted_at: 0,
         }
@@ -316,7 +316,7 @@ mod tests {
             deleted_at: 0,
         };
 
-        // 测试链式调用
+        // Test chained setters
         user.set_name("张三".to_string())
             .set_age(25)
             .set_avatar("avatar.jpg".to_string())
@@ -328,7 +328,7 @@ mod tests {
             .set_updated_at(1696560000)
             .set_deleted_at(0);
 
-        // 验证设置的值
+        // Verify the values that were set
         assert_eq!(user.nick_name, "张三");
         assert_eq!(user.age, 25);
         assert_eq!(user.avatar, "avatar.jpg");
@@ -357,28 +357,28 @@ mod tests {
             deleted_at: 0,
         };
 
-        // 测试部分链式调用
+        // Test partial chained setters
         user.set_name("李四".to_string())
             .set_age(30)
             .set_phone("13900139000".to_string());
 
-        // 验证设置的值
+        // Verify the values that were set
         assert_eq!(user.nick_name, "李四");
         assert_eq!(user.age, 30);
         assert_eq!(user.phone, "13900139000");
-        // 其他字段保持默认值
+        // Other fields keep their default values
         assert_eq!(user.avatar, "");
         assert_eq!(user.signature, "");
     }
 
     #[test]
     fn test_random_user_generation() {
-        // 生成多个随机用户，确保每次生成的数据都不同
+        // Generate several random users and ensure each generation differs
         let user1 = UserInfo::random();
         let user2 = UserInfo::random();
         let user3 = UserInfo::random();
 
-        // 验证基本字段不为空
+        // Verify basic fields are not empty
         assert!(!user1.nick_name.is_empty());
         assert!(!user1.avatar.is_empty());
         assert!(!user1.signature.is_empty());
@@ -386,30 +386,30 @@ mod tests {
         assert!(!user1.salt.is_empty());
         assert!(!user1.password.is_empty());
 
-        // 验证年龄范围
+        // Verify the age range
         assert!(user1.age >= 18 && user1.age <= 60);
         assert!(user2.age >= 18 && user2.age <= 60);
         assert!(user3.age >= 18 && user3.age <= 60);
 
-        // 验证ID范围
+        // Verify the ID range
         assert!(user1.id >= 1000 && user1.id < 100000);
         assert!(user2.id >= 1000 && user2.id < 100000);
         assert!(user3.id >= 1000 && user3.id < 100000);
 
-        // 验证时间戳
+        // Verify timestamps
         assert!(user1.created_at > 0);
         assert!(user1.updated_at > 0);
         assert_eq!(user1.deleted_at, 0);
 
-        // 验证手机号格式
+        // Verify the phone number format
         assert!(user1.phone.starts_with('1'));
         assert_eq!(user1.phone.len(), 11);
 
-        // 验证盐值和密码长度
+        // Verify salt and password lengths
         assert_eq!(user1.salt.len(), 16);
         assert_eq!(user1.password.len(), 32);
 
-        // 验证生成的用户数据不完全相同（随机性）
+        // Verify the generated user data is not all identical (randomness)
         assert_ne!(user1.nick_name, user2.nick_name);
         assert_ne!(user1.avatar, user2.avatar);
         assert_ne!(user1.signature, user2.signature);

@@ -68,7 +68,7 @@ impl AppContext {
             .await
             .map_err(|err| anyhow::anyhow!("build redis client error {}", err))?;
 
-        // 组装依赖：data 层实现 -> 注入 service -> 装入 AppState -> 构建 HTTP server
+        // Assemble dependencies: data-layer implementations -> inject into services -> build AppState -> build the HTTP server
         let user_service = UserService::new(
             Arc::new(MySqlUserRepo::new(db_conn.clone())),
             Arc::new(RedisKvStore::new(redis_client.clone())),

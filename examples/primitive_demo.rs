@@ -4,7 +4,7 @@ use axum_best::models::primitive::Primitive;
 fn main() {
     println!("=== Primitive 枚举使用示例 ===");
 
-    // 创建不同类型的 Primitive 值
+    // Create Primitive values of different types
     let values = vec![
         Primitive::I32(42),
         Primitive::from(3.14f64),
@@ -15,7 +15,7 @@ fn main() {
         Primitive::Null,
     ];
 
-    // 显示每个值的信息
+    // Show information for each value
     for value in values {
         println!("值: {:?}", value);
         println!("类型: {}", value.type_name());
@@ -26,7 +26,7 @@ fn main() {
         println!("---");
     }
 
-    // 演示 From trait 的使用
+    // Demonstrate the From trait
     println!("=== From trait 演示 ===");
     let from_i32: Primitive = 100.into();
     let from_bool: Primitive = false.into();

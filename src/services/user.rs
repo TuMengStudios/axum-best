@@ -26,8 +26,9 @@ use crate::utils;
 
 /// User service for handling user-related operations
 ///
-/// 只依赖仓储接口（`Arc<dyn UserRepo>` / `Arc<dyn KvStore>`），
-/// 不感知底层存储实现，单测时可注入 mock；具体实现由组装层（app::AppContext）注入。
+/// Depends only on repository traits (`Arc<dyn UserRepo>` / `Arc<dyn KvStore>`) and is
+/// unaware of the underlying storage; mocks can be injected in unit tests, while the
+/// concrete implementations are injected by the assembly layer (app::AppContext).
 #[derive(Clone)]
 pub struct UserService {
     repo: Arc<dyn UserRepo>,

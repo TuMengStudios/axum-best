@@ -17,25 +17,25 @@ pub enum UserUpdate {
     UpdatedAt(i64),
 }
 
-/// 用户仓储接口：只定义数据访问契约，具体实现由 data 层提供
+/// User repository trait: defines only the data-access contract; concrete implementations are provided by the data layer.
 ///
-/// service 层仅依赖本接口（`Arc<dyn UserRepo>`），不感知底层存储，
-/// 单测时可注入 mock 实现。
+/// The service layer depends only on this trait (`Arc<dyn UserRepo>`) and is unaware of the
+/// underlying storage, so mocks can be injected in unit tests.
 #[async_trait]
 pub trait UserRepo: Send + Sync {
-    /// 创建用户
+    /// Creates a user
     async fn create(&self, user: &mut UserInfo) -> Result<(), AppError>;
 
-    /// 更新用户信息
+    /// Updates user information
     async fn update(&self, user: &UserInfo) -> Result<(), AppError>;
 
-    /// 根据ID获取用户
+    /// Gets a user by ID
     async fn get_by_id(&self, id: i64) -> Result<UserInfo, AppError>;
 
-    /// 根据手机号获取用户
+    /// Gets a user by phone number
     async fn get_by_phone(&self, phone: &str) -> Result<UserInfo, AppError>;
 
-    /// 根据第三方身份获取用户
+    /// Gets a user by third-party identity
     async fn get_by_oauth(
         &self,
         provider: &str,
@@ -43,29 +43,29 @@ pub trait UserRepo: Send + Sync {
         sub_id: &str,
     ) -> Result<Option<UserInfo>, AppError>;
 
-    /// 创建用户的第三方身份关联
+    /// Creates a third-party identity link for a user
     async fn create_oauth_account(&self, account: &mut OAuthAccount) -> Result<(), AppError>;
 
-    /// 在同一个事务中创建用户及其第三方身份关联
+    /// Creates a user and its third-party identity link in the same transaction
     async fn create_user_with_oauth(
         &self,
         user: &mut UserInfo,
         account: &mut OAuthAccount,
     ) -> Result<(), AppError>;
 
-    /// 软删除用户（设置deleted_at时间戳）
+    /// Soft-deletes a user (sets the deleted_at timestamp)
     async fn delete(&self, id: i64, deleted_at: i64) -> Result<(), AppError>;
 
-    /// 硬删除用户（从数据库中完全删除）
+    /// Hard-deletes a user (removes the row from the database)
     async fn hard_delete(&self, id: i64) -> Result<(), AppError>;
 
-    /// 获取用户列表（分页查询）
+    /// Lists users (paginated query)
     async fn list(&self, page: u32, page_size: u32) -> Result<Vec<UserInfo>, AppError>;
 
-    /// 获取用户总数
+    /// Counts users
     async fn count(&self) -> Result<i64, AppError>;
 
-    /// 根据昵称搜索用户
+    /// Searches users by nickname
     async fn search_by_nickname(
         &self,
         nickname: &str,
@@ -73,6 +73,6 @@ pub trait UserRepo: Send + Sync {
         page_size: u32,
     ) -> Result<Vec<UserInfo>, AppError>;
 
-    /// 更新用户部分信息（动态构建更新语句）
+    /// Updates part of a user's information (builds the update statement dynamically)
     async fn update_partial(&self, id: i64, updates: &[UserUpdate]) -> Result<(), AppError>;
 }

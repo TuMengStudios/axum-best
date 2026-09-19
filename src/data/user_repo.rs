@@ -9,7 +9,7 @@ use crate::models::user::UserInfo;
 use crate::repos::user::UserRepo;
 use crate::repos::user::UserUpdate;
 
-/// 基于 MySQL/SQLx 的用户仓储实现
+/// User repository implementation backed by MySQL/SQLx
 pub struct MySqlUserRepo {
     pool: MySqlPool,
 }
@@ -22,7 +22,7 @@ impl MySqlUserRepo {
 
 #[async_trait]
 impl UserRepo for MySqlUserRepo {
-    /// 创建用户
+    /// Creates a user
     async fn create(&self, user: &mut UserInfo) -> Result<(), AppError> {
         user.id = sqlx::query_as!(UserInfo,
             r#"INSERT INTO user_info (nick_name, avatar, signature, age, phone, salt, password, created_at, updated_at, deleted_at)
@@ -46,7 +46,7 @@ impl UserRepo for MySqlUserRepo {
         Ok(())
     }
 
-    /// 更新用户信息
+    /// Updates user information
     async fn update(&self, user: &UserInfo) -> Result<(), AppError> {
         sqlx::query!(
             r#"UPDATE user_info SET
@@ -70,7 +70,7 @@ impl UserRepo for MySqlUserRepo {
         Ok(())
     }
 
-    /// 根据ID获取用户
+    /// Gets a user by ID
     async fn get_by_id(&self, id: i64) -> Result<UserInfo, AppError> {
         let user = sqlx::query_as!(
             UserInfo,
@@ -85,7 +85,7 @@ impl UserRepo for MySqlUserRepo {
         Ok(user)
     }
 
-    /// 根据手机号获取用户
+    /// Gets a user by phone number
     async fn get_by_phone(&self, phone: &str) -> Result<UserInfo, AppError> {
         let user = sqlx::query_as!(
             UserInfo,
@@ -100,7 +100,7 @@ impl UserRepo for MySqlUserRepo {
         Ok(user)
     }
 
-    /// 根据第三方身份获取用户
+    /// Gets a user by third-party identity
     async fn get_by_oauth(
         &self,
         provider: &str,
@@ -191,7 +191,7 @@ impl UserRepo for MySqlUserRepo {
         Ok(())
     }
 
-    /// 软删除用户（设置deleted_at时间戳）
+    /// Soft-deletes a user (sets the deleted_at timestamp)
     async fn delete(&self, id: i64, deleted_at: i64) -> Result<(), AppError> {
         sqlx::query!(r#"UPDATE user_info SET deleted_at = ? WHERE id = ?"#, deleted_at, id)
             .execute(&self.pool)
@@ -201,7 +201,7 @@ impl UserRepo for MySqlUserRepo {
         Ok(())
     }
 
-    /// 硬删除用户（从数据库中完全删除）
+    /// Hard-deletes a user (removes the row from the database)
     async fn hard_delete(&self, id: i64) -> Result<(), AppError> {
         sqlx::query!(r#"DELETE FROM user_info WHERE id = ?"#, id)
             .execute(&self.pool)
@@ -211,7 +211,7 @@ impl UserRepo for MySqlUserRepo {
         Ok(())
     }
 
-    /// 获取用户列表（分页查询）
+    /// Lists users (paginated query)
     async fn list(&self, page: u32, page_size: u32) -> Result<Vec<UserInfo>, AppError> {
         let offset = (page - 1) * page_size;
         let users = sqlx::query_as!(
@@ -229,7 +229,7 @@ impl UserRepo for MySqlUserRepo {
         Ok(users)
     }
 
-    /// 获取用户总数
+    /// Counts users
     async fn count(&self) -> Result<i64, AppError> {
         let count = sqlx::query_scalar!(r#"SELECT COUNT(*) FROM user_info WHERE deleted_at = 0"#)
             .fetch_one(&self.pool)
@@ -239,7 +239,7 @@ impl UserRepo for MySqlUserRepo {
         Ok(count)
     }
 
-    /// 根据昵称搜索用户
+    /// Searches users by nickname
     async fn search_by_nickname(
         &self,
         nickname: &str,
@@ -267,7 +267,7 @@ impl UserRepo for MySqlUserRepo {
         Ok(users)
     }
 
-    /// 更新用户部分信息（使用QueryBuilder动态构建更新语句）
+    /// Updates part of a user's information (builds the update statement dynamically with QueryBuilder)
     async fn update_partial(&self, id: i64, updates: &[UserUpdate]) -> Result<(), AppError> {
         if updates.is_empty() {
             return Ok(());

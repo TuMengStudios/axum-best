@@ -223,7 +223,7 @@ pub(super) fn covert_error(err: sqlx::Error) -> AppError {
         }
         sqlx::Error::Database(database_error) => {
             error!("database error: {}", database_error);
-            // 根据数据库错误代码返回不同的预定义错误
+            // Return different predefined errors based on the database error code
             if let Some(code) = database_error.code() {
                 match code.as_ref() {
                     "23000" | "23505" => {
@@ -351,7 +351,7 @@ mod tests {
         let err = sqlx::Error::RowNotFound;
         let app_error = covert_error(err);
 
-        // 通过 IntoResponse 转换来验证错误内容
+        // Verify the error content through the IntoResponse conversion
         let response = app_error.into_response();
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }

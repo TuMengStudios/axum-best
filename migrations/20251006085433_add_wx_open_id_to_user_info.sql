@@ -1,7 +1,7 @@
 -- Add migration script here
 
--- 添加 wx_open_id 字段到 user_info 表
+-- Add the wx_open_id column to the user_info table
 ALTER TABLE user_info ADD COLUMN wx_open_id VARCHAR(100) NOT NULL DEFAULT '';
 
--- 为 wx_open_id 字段添加索引
+-- Add an index on the wx_open_id column
 CREATE INDEX idx_wx_open_id ON user_info(wx_open_id);

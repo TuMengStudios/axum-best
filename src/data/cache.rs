@@ -6,7 +6,7 @@ use derivative::Derivative;
 use serde::Deserialize;
 use tracing::info;
 
-/// Redis 异步连接池（bb8，r2d2 的 tokio 版）
+/// Asynchronous Redis connection pool (bb8, the tokio version of r2d2)
 pub type RedisPool = bb8::Pool<RedisConnectionManager>;
 
 /// Redis configuration structure for connecting to Redis server

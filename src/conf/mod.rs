@@ -41,7 +41,7 @@ pub struct AppConf {
     #[derivative(Debug = "ignore")]
     pub jwt: JwtConfig,
 
-    /// 微信小程序配置
+    /// WeChat mini-program configuration
     pub(crate) wechat: WeChatConf,
 }
 

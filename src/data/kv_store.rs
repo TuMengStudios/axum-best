@@ -7,7 +7,7 @@ use crate::data::cache::RedisPool;
 use crate::errors;
 use crate::repos::kv::KvStore;
 
-/// 基于 Redis（bb8 异步连接池）的 KV 存储实现
+/// KV store implementation backed by Redis (bb8 async connection pool)
 pub struct RedisKvStore {
     pool: RedisPool,
 }
@@ -20,7 +20,7 @@ impl RedisKvStore {
 
 #[async_trait]
 impl KvStore for RedisKvStore {
-    /// 写入 key/value
+    /// Writes a key/value pair
     async fn set(&self, key: &str, value: &str) -> Result<(), AppError> {
         let mut conn = self.pool.get().await.map_err(|err| {
             error!("get redis connection error {}", err);
@@ -33,7 +33,7 @@ impl KvStore for RedisKvStore {
         Ok(())
     }
 
-    /// 读取 key 对应的值，key 不存在时返回 None
+    /// Reads the value for a key, returning None when the key does not exist
     async fn get(&self, key: &str) -> Result<Option<String>, AppError> {
         let mut conn = self.pool.get().await.map_err(|err| {
             error!("get redis connection error {}", err);
@@ -46,7 +46,7 @@ impl KvStore for RedisKvStore {
         Ok(value)
     }
 
-    /// 删除 key
+    /// Deletes a key
     async fn del(&self, key: &str) -> Result<(), AppError> {
         let mut conn = self.pool.get().await.map_err(|err| {
             error!("get redis connection error {}", err);

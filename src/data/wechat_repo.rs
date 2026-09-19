@@ -9,7 +9,7 @@ use crate::repos::wechat::WechatSession;
 
 const CODE_TO_SESSION_URL: &str = "https://api.weixin.qq.com/sns/jscode2session";
 
-/// 微信小程序接口配置，由微信接口实现持有。
+/// WeChat mini-program API configuration, held by the WeChat API implementation.
 #[derive(Derivative, Deserialize, Clone)]
 #[derivative(Debug)]
 pub(crate) struct WeChatConf {
@@ -30,7 +30,7 @@ struct CodeToSessionResponse {
     unionid: Option<String>,
 }
 
-/// 微信小程序接口的 HTTP 实现。
+/// HTTP implementation of the WeChat mini-program API.
 pub struct WechatApiRepo {
     client: reqwest::Client,
     appid: String,
