@@ -1,13 +1,22 @@
 use async_trait::async_trait;
+use derivative::Derivative;
 use serde::Deserialize;
 
-use crate::conf::wechat::WeChatConf;
 use crate::core::rest::AppError;
 use crate::errors;
 use crate::repos::wechat::WechatRepo;
 use crate::repos::wechat::WechatSession;
 
 const CODE_TO_SESSION_URL: &str = "https://api.weixin.qq.com/sns/jscode2session";
+
+/// 微信小程序接口配置，由微信接口实现持有。
+#[derive(Derivative, Deserialize, Clone)]
+#[derivative(Debug)]
+pub(crate) struct WeChatConf {
+    pub appid: String,
+    #[derivative(Debug = "ignore")]
+    pub secret: String,
+}
 
 #[derive(Debug, Deserialize)]
 struct CodeToSessionResponse {
