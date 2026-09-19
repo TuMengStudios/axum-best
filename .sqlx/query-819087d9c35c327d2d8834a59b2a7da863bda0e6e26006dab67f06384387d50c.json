@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT * FROM user_info\n               WHERE nick_name LIKE ? AND deleted_at = 0\n               ORDER BY id DESC LIMIT ? OFFSET ?",
+  "query": "SELECT id, nick_name, avatar, signature, age, phone, salt, password,\n                      created_at, updated_at, deleted_at\n               FROM user_info\n               WHERE nick_name LIKE ? AND deleted_at = 0\n               ORDER BY id DESC LIMIT ? OFFSET ?",
   "describe": {
     "columns": [
       {
@@ -101,15 +101,6 @@
           "flags": "NOT_NULL",
           "max_size": 20
         }
-      },
-      {
-        "ordinal": 11,
-        "name": "wx_open_id",
-        "type_info": {
-          "type": "VarString",
-          "flags": "NOT_NULL | MULTIPLE_KEY",
-          "max_size": 400
-        }
       }
     ],
     "parameters": {
@@ -126,9 +117,8 @@
       false,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "dad33f1a47555fbd84648b79016607cd35b0ce2235d86832f4497af7f6639834"
+  "hash": "819087d9c35c327d2d8834a59b2a7da863bda0e6e26006dab67f06384387d50c"
 }
