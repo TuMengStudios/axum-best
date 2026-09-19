@@ -5,12 +5,20 @@ use crate::conf::wechat::WeChatConf;
 use crate::core::rest::AppError;
 use crate::errors;
 use crate::repos::wechat::WechatRepo;
+use crate::repos::wechat::WechatSession;
 
 const CODE_TO_SESSION_URL: &str = "https://api.weixin.qq.com/sns/jscode2session";
 
 #[derive(Debug, Deserialize)]
 struct CodeToSessionResponse {
-    openid: String,
+    openid: Option<String>,
+    session_key: Option<String>,
+    #[serde(default)]
+    errcode: Option<i64>,
+    #[serde(default)]
+    errmsg: Option<String>,
+    #[serde(default)]
+    unionid: Option<String>,
 }
 
 /// 微信小程序接口的 HTTP 实现。
@@ -32,7 +40,7 @@ impl WechatApiRepo {
 
 #[async_trait]
 impl WechatRepo for WechatApiRepo {
-    async fn exchange_code_for_open_id(&self, code: &str) -> Result<String, AppError> {
+    async fn exchange_login_code(&self, code: &str) -> Result<WechatSession, AppError> {
         let response = self
             .client
             .get(CODE_TO_SESSION_URL)
@@ -55,6 +63,40 @@ impl WechatRepo for WechatApiRepo {
                 errors::ErrUnmarshalJSON.with_cause(err, "decode WeChat API response")
             })?;
 
-        Ok(response.openid)
+        if let Some(errcode) = response.errcode.filter(|code| *code != 0) {
+            let errmsg = response
+                .errmsg
+                .as_deref()
+                .unwrap_or("unknown WeChat API error");
+            return Err(errors::ErrWechatLogin.with_cause(
+                std::io::Error::other(format!("errcode={errcode}, errmsg={errmsg}")),
+                "WeChat API returned an application error",
+            ));
+        }
+
+        let open_id = response.openid.ok_or_else(|| {
+            errors::ErrWechatLogin.with_cause(
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "WeChat API response did not contain openid",
+                ),
+                "WeChat API response missing openid",
+            )
+        })?;
+        let session_key = response.session_key.ok_or_else(|| {
+            errors::ErrWechatLogin.with_cause(
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "WeChat API response did not contain session_key",
+                ),
+                "WeChat API response missing session_key",
+            )
+        })?;
+
+        Ok(WechatSession {
+            open_id,
+            session_key,
+            union_id: response.unionid,
+        })
     }
 }

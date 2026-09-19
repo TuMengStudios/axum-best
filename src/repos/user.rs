@@ -36,7 +36,7 @@ pub trait UserRepo: Send + Sync {
     async fn get_by_phone(&self, phone: &str) -> Result<UserInfo, AppError>;
 
     /// 根据微信Open ID获取用户
-    async fn get_by_wx_open_id(&self, wx_open_id: &str) -> Result<UserInfo, AppError>;
+    async fn get_by_wx_open_id(&self, wx_open_id: &str) -> Result<Option<UserInfo>, AppError>;
 
     /// 软删除用户（设置deleted_at时间戳）
     async fn delete(&self, id: i64, deleted_at: i64) -> Result<(), AppError>;

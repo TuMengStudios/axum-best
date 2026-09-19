@@ -90,16 +90,11 @@ impl UserRepo for MySqlUserRepo {
     }
 
     /// 根据微信Open ID获取用户
-    async fn get_by_wx_open_id(&self, wx_open_id: &str) -> Result<UserInfo, AppError> {
-        let user = sqlx::query_as!(
-            UserInfo,
-            r#"SELECT * FROM user_info WHERE wx_open_id = ?"#,
-            wx_open_id
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(covert_error)?;
-        Ok(user)
+    async fn get_by_wx_open_id(&self, wx_open_id: &str) -> Result<Option<UserInfo>, AppError> {
+        sqlx::query_as!(UserInfo, r#"SELECT * FROM user_info WHERE wx_open_id = ?"#, wx_open_id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(covert_error)
     }
 
     /// 软删除用户（设置deleted_at时间戳）

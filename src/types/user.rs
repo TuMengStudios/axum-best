@@ -6,7 +6,6 @@ use validator::Validate;
 use crate::models::user::UserInfo;
 
 /// WeChat mini program login request
-#[allow(unused)]
 #[derive(Deserialize, Debug, Validate)]
 pub struct WxMiniLoginRequest {
     /// Login code obtained from WeChat login
@@ -21,8 +20,10 @@ pub struct WxMiniLoginRequest {
 #[allow(unused)]
 #[derive(Serialize, SmartDefault)]
 pub struct WxMiniLoginResponse {
-    /// Authentication token for login
-    pub auth: String,
+    /// Display name stored for the user
+    pub nick_name: String,
+    /// Avatar URL stored for the user
+    pub avatar: String,
 }
 
 /// Email login request structure

@@ -45,7 +45,7 @@ pub async fn bind_email(
 /// * `Result<WxMiniLoginResponse>` - Login response with user information
 pub async fn wechat_login(
     State(state): State<AppState>,
-    Json(req): Json<WxMiniLoginRequest>,
+    Valid(Json(req)): Valid<Json<WxMiniLoginRequest>>,
 ) -> Result<WxMiniLoginResponse> {
     debug!("code {}", req.code);
     state.user_service.wx_login(req).await

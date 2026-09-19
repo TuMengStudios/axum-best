@@ -38,6 +38,25 @@ pub struct UserInfo {
 }
 
 impl UserInfo {
+    /// Creates a local user record for a first-time WeChat login.
+    pub fn new_wechat(open_id: String) -> Self {
+        let now = chrono::Utc::now().timestamp();
+        Self {
+            id: 0,
+            nick_name: "微信用户".to_string(),
+            avatar: String::new(),
+            signature: String::new(),
+            age: 0,
+            phone: String::new(),
+            wx_open_id: open_id,
+            salt: String::new(),
+            password: String::new(),
+            created_at: now,
+            updated_at: now,
+            deleted_at: 0,
+        }
+    }
+
     pub fn set_name(&mut self, name: String) -> &mut Self {
         self.nick_name = name;
         self
@@ -416,6 +435,18 @@ mod tests {
         assert_ne!(user1.wx_open_id, user2.wx_open_id);
         assert_ne!(user1.salt, user2.salt);
         assert_ne!(user1.password, user2.password);
+    }
+
+    #[test]
+    fn test_new_wechat_user() {
+        let user = UserInfo::new_wechat("openid-123".to_string());
+
+        assert_eq!(user.id, 0);
+        assert_eq!(user.nick_name, "微信用户");
+        assert_eq!(user.wx_open_id, "openid-123");
+        assert_eq!(user.deleted_at, 0);
+        assert!(user.created_at > 0);
+        assert_eq!(user.created_at, user.updated_at);
     }
 }
 
