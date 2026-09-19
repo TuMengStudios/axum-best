@@ -4,7 +4,7 @@ use serde::Deserialize;
 use crate::auth::JwtConfig;
 use crate::data::cache::RedisConf;
 use crate::data::mysql::MysqlConf;
-use crate::data::wechat_repo::WeChatConf;
+use crate::data::wechat::WeChatConf;
 use crate::logx::LogConfig;
 use crate::transport::http::HttpConf;
 

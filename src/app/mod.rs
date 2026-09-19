@@ -8,9 +8,9 @@ use tracing_appender::non_blocking::WorkerGuard;
 
 use crate::conf::AppConf;
 use crate::core::state::AppState;
-use crate::data::kv_store::RedisKvStore;
-use crate::data::user_repo::MySqlUserRepo;
-use crate::data::wechat_repo::WechatApiRepo;
+use crate::data::kv::RedisKvStore;
+use crate::data::user::MySqlUserRepo;
+use crate::data::wechat::WechatApiRepo;
 use crate::routers;
 use crate::services::foo::FooService;
 use crate::services::user::UserService;

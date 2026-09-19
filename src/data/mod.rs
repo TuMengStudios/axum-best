@@ -1,5 +1,5 @@
 pub mod cache;
-pub mod kv_store;
+pub mod kv;
 pub mod mysql;
-pub mod user_repo;
-pub mod wechat_repo;
+pub mod user;
+pub mod wechat;

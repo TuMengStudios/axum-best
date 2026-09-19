@@ -1,7 +1,7 @@
 //! User CRUD operations demo
 //!
 //! This example shows how to use the UserRepo repository trait (contract defined in repos/user.rs,
-//! MySQL implementation provided in data/user_repo.rs)
+//! MySQL implementation provided in data/user.rs)
 
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
