@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use axum::extract::Request;
 use axum::extract::State;
+use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::Response;
 use tower::Layer;
@@ -61,7 +62,7 @@ pub async fn middleware(State(config): State<TimeoutConfig>, req: Request, next:
 
     // Reuse tower-http's timeout service: on elapsed it answers a bare 408
     // itself. `Next` is infallible, so the error side is unreachable.
-    match TimeoutLayer::new(config.duration)
+    match TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, config.duration)
         .layer(next)
         .oneshot(req)
         .await
