@@ -25,8 +25,8 @@ impl UserRepo for MySqlUserRepo {
     /// Creates a user
     async fn create(&self, user: &mut UserInfo) -> Result<(), AppError> {
         user.id = sqlx::query_as!(UserInfo,
-            r#"INSERT INTO user_info (nick_name, avatar, signature, age, phone, salt, password, created_at, updated_at, deleted_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+            r#"INSERT INTO user_info (nick_name, avatar, signature, age, phone, salt, password, created_at, updated_at, deleted_at, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
             user.nick_name,
             user.avatar,
             user.signature,
@@ -36,7 +36,8 @@ impl UserRepo for MySqlUserRepo {
             user.password,
             user.created_at,
             user.updated_at,
-            user.deleted_at
+            user.deleted_at,
+            user.status
         )
         .execute(&self.pool)
         .await
@@ -51,7 +52,7 @@ impl UserRepo for MySqlUserRepo {
         sqlx::query!(
             r#"UPDATE user_info SET
                nick_name = ?, avatar = ?, signature = ?, age = ?, phone = ?,
-               salt = ?, password = ?, updated_at = ?
+               salt = ?, password = ?, status = ?, updated_at = ?
                WHERE id = ?"#,
             user.nick_name,
             user.avatar,
@@ -60,6 +61,7 @@ impl UserRepo for MySqlUserRepo {
             user.phone,
             user.salt,
             user.password,
+            user.status,
             user.updated_at,
             user.id
         )
@@ -75,7 +77,7 @@ impl UserRepo for MySqlUserRepo {
         let user = sqlx::query_as!(
             UserInfo,
             r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
-                      created_at, updated_at, deleted_at
+                      created_at, updated_at, deleted_at, status
                FROM user_info WHERE id = ?"#,
             id
         )
@@ -90,7 +92,7 @@ impl UserRepo for MySqlUserRepo {
         let user = sqlx::query_as!(
             UserInfo,
             r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
-                      created_at, updated_at, deleted_at
+                      created_at, updated_at, deleted_at, status
                FROM user_info WHERE phone = ?"#,
             phone
         )
@@ -109,7 +111,7 @@ impl UserRepo for MySqlUserRepo {
     ) -> Result<Option<UserInfo>, AppError> {
         sqlx::query_as::<_, UserInfo>(
             r#"SELECT u.id, u.nick_name, u.avatar, u.signature, u.age, u.phone,
-                      u.salt, u.password, u.created_at, u.updated_at, u.deleted_at
+                      u.salt, u.password, u.created_at, u.updated_at, u.deleted_at, u.status
                FROM user_info u
                INNER JOIN user_oauth_account a ON a.user_id = u.id
                WHERE a.provider = ? AND a.provider_app_id = ?
@@ -152,8 +154,8 @@ impl UserRepo for MySqlUserRepo {
         user.id = sqlx::query(
             r#"INSERT INTO user_info
                (nick_name, avatar, signature, age, phone, salt, password,
-                created_at, updated_at, deleted_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+                created_at, updated_at, deleted_at, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
         )
         .bind(&user.nick_name)
         .bind(&user.avatar)
@@ -165,6 +167,7 @@ impl UserRepo for MySqlUserRepo {
         .bind(user.created_at)
         .bind(user.updated_at)
         .bind(user.deleted_at)
+        .bind(user.status)
         .execute(&mut *tx)
         .await
         .map_err(covert_error)?
@@ -217,7 +220,7 @@ impl UserRepo for MySqlUserRepo {
         let users = sqlx::query_as!(
             UserInfo,
             r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
-                      created_at, updated_at, deleted_at
+                      created_at, updated_at, deleted_at, status
                FROM user_info WHERE deleted_at = 0 ORDER BY id DESC LIMIT ? OFFSET ?"#,
             page_size as i64,
             offset as i64
@@ -252,7 +255,7 @@ impl UserRepo for MySqlUserRepo {
         let users = sqlx::query_as!(
             UserInfo,
             r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
-                      created_at, updated_at, deleted_at
+                      created_at, updated_at, deleted_at, status
                FROM user_info
                WHERE nick_name LIKE ? AND deleted_at = 0
                ORDER BY id DESC LIMIT ? OFFSET ?"#,
@@ -288,6 +291,7 @@ impl UserRepo for MySqlUserRepo {
                 UserUpdate::Phone(value) => query_builder.push("phone = ").push_bind(value),
                 UserUpdate::Salt(value) => query_builder.push("salt = ").push_bind(value),
                 UserUpdate::Password(value) => query_builder.push("password = ").push_bind(value),
+                UserUpdate::Status(value) => query_builder.push("status = ").push_bind(value),
                 UserUpdate::UpdatedAt(value) => {
                     query_builder.push("updated_at = ").push_bind(value)
                 }

@@ -5,7 +5,7 @@ use tracing::info;
 
 use crate::core::Result;
 use crate::core::rest::AppError;
-use crate::errors::ErrUnauthorized;
+use crate::errors::ErrUserAbnormal;
 use crate::models::oauth::OAuthAccount;
 use crate::models::user::UserInfo;
 use crate::ok;
@@ -46,11 +46,11 @@ impl UserService {
         UserService { repo, kv, wechat }
     }
 
-    /// Loads a user for authentication and rejects soft-deleted accounts.
+    /// Loads a user for authentication and rejects soft-deleted or disabled accounts.
     pub async fn active_user(&self, user_id: i64) -> std::result::Result<UserInfo, AppError> {
         let user = self.repo.get_by_id(user_id).await?;
-        if user.deleted_at != 0 {
-            return Err(ErrUnauthorized.clone());
+        if user.deleted_at != 0 || user.status != UserInfo::STATUS_NORMAL {
+            return Err(ErrUserAbnormal.clone());
         }
         Ok(user)
     }

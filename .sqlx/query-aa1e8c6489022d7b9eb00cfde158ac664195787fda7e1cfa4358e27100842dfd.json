@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT id, nick_name, avatar, signature, age, phone, salt, password,\n                      created_at, updated_at, deleted_at\n               FROM user_info WHERE deleted_at = 0 ORDER BY id DESC LIMIT ? OFFSET ?",
+  "query": "SELECT id, nick_name, avatar, signature, age, phone, salt, password,\n                      created_at, updated_at, deleted_at, status\n               FROM user_info WHERE deleted_at = 0 ORDER BY id DESC LIMIT ? OFFSET ?",
   "describe": {
     "columns": [
       {
@@ -101,6 +101,15 @@
           "flags": "NOT_NULL",
           "max_size": 20
         }
+      },
+      {
+        "ordinal": 11,
+        "name": "status",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "max_size": 4
+        }
       }
     ],
     "parameters": {
@@ -117,8 +126,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "a9741c26e8ed049afa68fea0af5f3fd57194cce09d700e4e7eb981419a887f40"
+  "hash": "aa1e8c6489022d7b9eb00cfde158ac664195787fda7e1cfa4358e27100842dfd"
 }

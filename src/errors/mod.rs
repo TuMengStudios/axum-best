@@ -36,6 +36,10 @@ lazy_static! {
     /// JWT token generation failed
     pub static ref ErrJwtTokenCreation: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 20402, "Server Internal Error");
+
+    /// User account is abnormal (soft-deleted or disabled)
+    pub static ref ErrUserAbnormal: AppError =
+        AppError::new(StatusCode::UNAUTHORIZED, 20403, "User Abnormal");
 }
 
 lazy_static! {

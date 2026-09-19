@@ -32,10 +32,17 @@ pub struct UserInfo {
     pub updated_at: i64,
     /// Timestamp when the user was deleted (Unix timestamp, 0 if not deleted)
     pub deleted_at: i64,
+    /// Account status, see [`UserInfo::STATUS_NORMAL`] / [`UserInfo::STATUS_DISABLED`]
+    pub status: i8,
     // .... other fields
 }
 
 impl UserInfo {
+    /// Account is active and allowed to log in
+    pub const STATUS_NORMAL: i8 = 0;
+    /// Account has been disabled (e.g. banned by an admin)
+    pub const STATUS_DISABLED: i8 = 1;
+
     /// Creates a local user record for a first-time external login.
     pub fn new_external() -> Self {
         let now = chrono::Utc::now().timestamp();
@@ -51,6 +58,7 @@ impl UserInfo {
             created_at: now,
             updated_at: now,
             deleted_at: 0,
+            status: Self::STATUS_NORMAL,
         }
     }
 
@@ -101,6 +109,11 @@ impl UserInfo {
 
     pub fn set_deleted_at(&mut self, deleted_at: i64) -> &mut Self {
         self.deleted_at = deleted_at;
+        self
+    }
+
+    pub fn set_status(&mut self, status: i8) -> &mut Self {
+        self.status = status;
         self
     }
 
@@ -274,6 +287,7 @@ impl UserInfo {
             created_at: timestamp - rng.random_range(0..31536000), // random time within the past year
             updated_at: timestamp,
             deleted_at: 0,
+            status: Self::STATUS_NORMAL,
         }
     }
 }
@@ -314,6 +328,7 @@ mod tests {
             created_at: 0,
             updated_at: 0,
             deleted_at: 0,
+            status: 0,
         };
 
         // Test chained setters
@@ -326,7 +341,8 @@ mod tests {
             .set_password("hashed_password".to_string())
             .set_created_at(1696560000)
             .set_updated_at(1696560000)
-            .set_deleted_at(0);
+            .set_deleted_at(0)
+            .set_status(UserInfo::STATUS_NORMAL);
 
         // Verify the values that were set
         assert_eq!(user.nick_name, "张三");
@@ -339,6 +355,7 @@ mod tests {
         assert_eq!(user.created_at, 1696560000);
         assert_eq!(user.updated_at, 1696560000);
         assert_eq!(user.deleted_at, 0);
+        assert_eq!(user.status, UserInfo::STATUS_NORMAL);
     }
 
     #[test]
@@ -355,6 +372,7 @@ mod tests {
             created_at: 0,
             updated_at: 0,
             deleted_at: 0,
+            status: 0,
         };
 
         // Test partial chained setters
@@ -425,6 +443,7 @@ mod tests {
         assert_eq!(user.id, 0);
         assert_eq!(user.nick_name, "新用户");
         assert_eq!(user.deleted_at, 0);
+        assert_eq!(user.status, UserInfo::STATUS_NORMAL);
         assert!(user.created_at > 0);
         assert_eq!(user.created_at, user.updated_at);
     }

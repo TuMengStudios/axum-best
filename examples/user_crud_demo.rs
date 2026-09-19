@@ -35,6 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         created_at: current_timestamp()?,
         updated_at: current_timestamp()?,
         deleted_at: 0,
+        status: UserInfo::STATUS_NORMAL,
     };
 
     println!("   创建前用户ID: {}", new_user.id);
@@ -67,6 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         created_at: new_user.created_at,
         updated_at: current_timestamp()?,
         deleted_at: new_user.deleted_at,
+        status: new_user.status,
     };
 
     // In real usage: repo.update(&updated_user).await?;

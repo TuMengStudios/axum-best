@@ -14,6 +14,7 @@ pub enum UserUpdate {
     Phone(String),
     Salt(String),
     Password(String),
+    Status(i8),
     UpdatedAt(i64),
 }
 

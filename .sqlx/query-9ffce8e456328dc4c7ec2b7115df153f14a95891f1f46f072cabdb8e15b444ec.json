@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT id, nick_name, avatar, signature, age, phone, salt, password,\n                      created_at, updated_at, deleted_at\n               FROM user_info WHERE phone = ?",
+  "query": "SELECT id, nick_name, avatar, signature, age, phone, salt, password,\n                      created_at, updated_at, deleted_at, status\n               FROM user_info WHERE phone = ?",
   "describe": {
     "columns": [
       {
@@ -101,6 +101,15 @@
           "flags": "NOT_NULL",
           "max_size": 20
         }
+      },
+      {
+        "ordinal": 11,
+        "name": "status",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "max_size": 4
+        }
       }
     ],
     "parameters": {
@@ -117,8 +126,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "849a6ec2723a3608d0abda1599f18f0c356ddc620583ef78f9c47586168701af"
+  "hash": "9ffce8e456328dc4c7ec2b7115df153f14a95891f1f46f072cabdb8e15b444ec"
 }
