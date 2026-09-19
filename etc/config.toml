@@ -86,6 +86,13 @@ timeout_excluded_paths = []
 compression_excluded_paths = []
 
 
+[jwt]
+# HMAC secret used to sign and validate bearer tokens. This value is required.
+secret = "replace-this-secret"
+# Lifetime of issued tokens, in seconds.
+expiration_secs = 3600
+
+
 [mysql]
 # MySQL database configuration section
 # -----------------------------------------------------------------------------

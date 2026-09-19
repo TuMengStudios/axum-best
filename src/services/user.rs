@@ -5,6 +5,7 @@ use tracing::info;
 
 use crate::core::Result;
 use crate::core::rest::AppError;
+use crate::errors::ErrUnauthorized;
 use crate::models::oauth::OAuthAccount;
 use crate::models::user::UserInfo;
 use crate::ok;
@@ -42,6 +43,15 @@ impl UserService {
         wechat: Arc<dyn WechatRepo>,
     ) -> UserService {
         UserService { repo, kv, wechat }
+    }
+
+    /// Loads a user for authentication and rejects soft-deleted accounts.
+    pub async fn active_user(&self, user_id: i64) -> std::result::Result<UserInfo, AppError> {
+        let user = self.repo.get_by_id(user_id).await?;
+        if user.deleted_at != 0 {
+            return Err(ErrUnauthorized.clone());
+        }
+        Ok(user)
     }
 
     async fn get_or_create_wechat_user(

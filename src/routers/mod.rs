@@ -15,6 +15,7 @@ use crate::core::state::AppState;
 use crate::handlers::foo;
 use crate::handlers::health;
 use crate::handlers::user as userHandler;
+use crate::transport::middleware::auth;
 use crate::transport::middleware::compression;
 use crate::transport::middleware::cors;
 use crate::transport::middleware::request_id::inject_request_id;
@@ -48,13 +49,17 @@ pub fn app_routers(state: AppState) -> Router {
     //   request decompression (from `layer`'s ServiceBuilder)
     //   tracing
     //   routes
-    Router::new()
+    let protected_routes = Router::new()
         .route("/user/{id}", get(userHandler::user_by_id))
-        .route("/user/wx/login", post(userHandler::wechat_login))
         .route("/user/email", post(userHandler::bind_email))
         .route("/user/email/pre", post(userHandler::pre_bind_email))
         .route("/user/random", get(userHandler::random_user))
         .route("/foo", get(foo::foo))
+        .route_layer(middleware::from_fn_with_state(state.clone(), auth::auth));
+
+    Router::new()
+        .merge(protected_routes)
+        .route("/user/wx/login", post(userHandler::wechat_login))
         .route("/health", get(health::health))
         .fallback(not_implemented)
         .layer(layer)

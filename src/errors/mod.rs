@@ -28,6 +28,14 @@ lazy_static! {
 lazy_static! {
     /// Invalid user ID - unauthorized access attempt
     pub static ref ErrInvalidUserId: AppError = AppError::new(StatusCode::UNAUTHORIZED, 20000, "");
+
+    /// Missing or invalid JWT credentials
+    pub static ref ErrUnauthorized: AppError =
+        AppError::new(StatusCode::UNAUTHORIZED, 20401, "Unauthorized");
+
+    /// JWT token generation failed
+    pub static ref ErrJwtTokenCreation: AppError =
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 20402, "Server Internal Error");
 }
 
 lazy_static! {

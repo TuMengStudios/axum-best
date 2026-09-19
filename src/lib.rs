@@ -1,4 +1,5 @@
 pub mod app;
+pub mod auth;
 pub mod conf;
 pub mod core;
 pub mod data;
