@@ -35,18 +35,12 @@ pub async fn auth(State(state): State<AppState>, mut request: Request, next: Nex
 }
 
 fn decode_request_claims(state: &AppState, headers: &HeaderMap) -> Result<Claims, AppError> {
-    let token = bearer_token(headers.get(axum::http::header::AUTHORIZATION))
+    let token = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
         .ok_or_else(|| ErrUnauthorized.clone())?;
     state.cfg.jwt.decode_token(token)
-}
-
-fn bearer_token(value: Option<&HeaderValue>) -> Option<&str> {
-    let value = value?.to_str().ok()?;
-    let (scheme, token) = value.split_once(' ')?;
-    if !scheme.eq_ignore_ascii_case("bearer") || token.is_empty() || token.contains(' ') {
-        return None;
-    }
-    Some(token)
 }
 
 fn unauthorized_response(error: AppError) -> Response {
