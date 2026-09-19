@@ -7,6 +7,7 @@ use crate::core::rest::AppError;
 /// `session_key` 只供服务端后续校验/解密使用，禁止返回给客户端或写入日志。
 #[derive(Debug, Clone)]
 pub struct WechatSession {
+    pub app_id: String,
     pub open_id: String,
     pub session_key: String,
     pub union_id: Option<String>,

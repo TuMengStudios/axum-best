@@ -22,8 +22,6 @@ pub struct UserInfo {
     pub age: u8,
     /// User's phone number
     pub phone: String,
-    /// WeChat Open ID for authentication
-    pub wx_open_id: String,
     /// Salt used for password hashing
     pub salt: String,
     /// Hashed password
@@ -38,17 +36,16 @@ pub struct UserInfo {
 }
 
 impl UserInfo {
-    /// Creates a local user record for a first-time WeChat login.
-    pub fn new_wechat(open_id: String) -> Self {
+    /// Creates a local user record for a first-time external login.
+    pub fn new_external() -> Self {
         let now = chrono::Utc::now().timestamp();
         Self {
             id: 0,
-            nick_name: "微信用户".to_string(),
+            nick_name: "新用户".to_string(),
             avatar: String::new(),
             signature: String::new(),
             age: 0,
             phone: String::new(),
-            wx_open_id: open_id,
             salt: String::new(),
             password: String::new(),
             created_at: now,
@@ -104,11 +101,6 @@ impl UserInfo {
 
     pub fn set_deleted_at(&mut self, deleted_at: i64) -> &mut Self {
         self.deleted_at = deleted_at;
-        self
-    }
-
-    pub fn set_wx_open_id(&mut self, wx_open_id: String) -> &mut Self {
-        self.wx_open_id = wx_open_id;
         self
     }
 
@@ -255,11 +247,6 @@ impl UserInfo {
             .map(|_| alphanumeric[rng.random_range(0..alphanumeric.len())] as char)
             .collect();
 
-        // 随机微信OpenID
-        let wx_open_id: String = (0..28)
-            .map(|_| alphanumeric[rng.random_range(0..alphanumeric.len())] as char)
-            .collect();
-
         // 随机手机号
         let phone = format!(
             "1{}{}{}{}{}{}{}{}{}{}",
@@ -282,7 +269,6 @@ impl UserInfo {
             signature,
             age: rng.random_range(18..60),
             phone,
-            wx_open_id,
             salt,
             password,
             created_at: timestamp - rng.random_range(0..31536000), // 一年内的随机时间
@@ -323,7 +309,6 @@ mod tests {
             signature: "".to_string(),
             age: 0,
             phone: "".to_string(),
-            wx_open_id: "".to_string(),
             salt: "".to_string(),
             password: "".to_string(),
             created_at: 0,
@@ -365,7 +350,6 @@ mod tests {
             signature: "".to_string(),
             age: 0,
             phone: "".to_string(),
-            wx_open_id: "".to_string(),
             salt: "".to_string(),
             password: "".to_string(),
             created_at: 0,
@@ -399,7 +383,6 @@ mod tests {
         assert!(!user1.avatar.is_empty());
         assert!(!user1.signature.is_empty());
         assert!(!user1.phone.is_empty());
-        assert!(!user1.wx_open_id.is_empty());
         assert!(!user1.salt.is_empty());
         assert!(!user1.password.is_empty());
 
@@ -425,25 +408,22 @@ mod tests {
         // 验证盐值和密码长度
         assert_eq!(user1.salt.len(), 16);
         assert_eq!(user1.password.len(), 32);
-        assert_eq!(user1.wx_open_id.len(), 28);
 
         // 验证生成的用户数据不完全相同（随机性）
         assert_ne!(user1.nick_name, user2.nick_name);
         assert_ne!(user1.avatar, user2.avatar);
         assert_ne!(user1.signature, user2.signature);
         assert_ne!(user1.phone, user2.phone);
-        assert_ne!(user1.wx_open_id, user2.wx_open_id);
         assert_ne!(user1.salt, user2.salt);
         assert_ne!(user1.password, user2.password);
     }
 
     #[test]
-    fn test_new_wechat_user() {
-        let user = UserInfo::new_wechat("openid-123".to_string());
+    fn test_new_external_user() {
+        let user = UserInfo::new_external();
 
         assert_eq!(user.id, 0);
-        assert_eq!(user.nick_name, "微信用户");
-        assert_eq!(user.wx_open_id, "openid-123");
+        assert_eq!(user.nick_name, "新用户");
         assert_eq!(user.deleted_at, 0);
         assert!(user.created_at > 0);
         assert_eq!(user.created_at, user.updated_at);

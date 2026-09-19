@@ -4,6 +4,7 @@ use sqlx::QueryBuilder;
 
 use super::mysql::covert_error;
 use crate::core::rest::AppError;
+use crate::models::oauth::OAuthAccount;
 use crate::models::user::UserInfo;
 use crate::repos::user::UserRepo;
 use crate::repos::user::UserUpdate;
@@ -24,14 +25,13 @@ impl UserRepo for MySqlUserRepo {
     /// 创建用户
     async fn create(&self, user: &mut UserInfo) -> Result<(), AppError> {
         user.id = sqlx::query_as!(UserInfo,
-            r#"INSERT INTO user_info (nick_name, avatar, signature, age, phone, wx_open_id, salt, password, created_at, updated_at, deleted_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+            r#"INSERT INTO user_info (nick_name, avatar, signature, age, phone, salt, password, created_at, updated_at, deleted_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
             user.nick_name,
             user.avatar,
             user.signature,
             user.age,
             user.phone,
-            user.wx_open_id,
             user.salt,
             user.password,
             user.created_at,
@@ -51,14 +51,13 @@ impl UserRepo for MySqlUserRepo {
         sqlx::query!(
             r#"UPDATE user_info SET
                nick_name = ?, avatar = ?, signature = ?, age = ?, phone = ?,
-               wx_open_id = ?, salt = ?, password = ?, updated_at = ?
+               salt = ?, password = ?, updated_at = ?
                WHERE id = ?"#,
             user.nick_name,
             user.avatar,
             user.signature,
             user.age,
             user.phone,
-            user.wx_open_id,
             user.salt,
             user.password,
             user.updated_at,
@@ -73,28 +72,123 @@ impl UserRepo for MySqlUserRepo {
 
     /// 根据ID获取用户
     async fn get_by_id(&self, id: i64) -> Result<UserInfo, AppError> {
-        let user = sqlx::query_as!(UserInfo, r#"SELECT * FROM user_info WHERE id = ?"#, id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(covert_error)?;
+        let user = sqlx::query_as!(
+            UserInfo,
+            r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
+                      created_at, updated_at, deleted_at
+               FROM user_info WHERE id = ?"#,
+            id
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(covert_error)?;
         Ok(user)
     }
 
     /// 根据手机号获取用户
     async fn get_by_phone(&self, phone: &str) -> Result<UserInfo, AppError> {
-        let user = sqlx::query_as!(UserInfo, r#"SELECT * FROM user_info WHERE phone = ?"#, phone)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(covert_error)?;
+        let user = sqlx::query_as!(
+            UserInfo,
+            r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
+                      created_at, updated_at, deleted_at
+               FROM user_info WHERE phone = ?"#,
+            phone
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(covert_error)?;
         Ok(user)
     }
 
-    /// 根据微信Open ID获取用户
-    async fn get_by_wx_open_id(&self, wx_open_id: &str) -> Result<Option<UserInfo>, AppError> {
-        sqlx::query_as!(UserInfo, r#"SELECT * FROM user_info WHERE wx_open_id = ?"#, wx_open_id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(covert_error)
+    /// 根据第三方身份获取用户
+    async fn get_by_oauth(
+        &self,
+        provider: &str,
+        provider_app_id: &str,
+        sub_id: &str,
+    ) -> Result<Option<UserInfo>, AppError> {
+        sqlx::query_as::<_, UserInfo>(
+            r#"SELECT u.id, u.nick_name, u.avatar, u.signature, u.age, u.phone,
+                      u.salt, u.password, u.created_at, u.updated_at, u.deleted_at
+               FROM user_info u
+               INNER JOIN user_oauth_account a ON a.user_id = u.id
+               WHERE a.provider = ? AND a.provider_app_id = ?
+                 AND a.sub_id = ? AND u.deleted_at = 0"#,
+        )
+        .bind(provider)
+        .bind(provider_app_id)
+        .bind(sub_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(covert_error)
+    }
+
+    async fn create_oauth_account(&self, account: &mut OAuthAccount) -> Result<(), AppError> {
+        account.id = sqlx::query(
+            r#"INSERT INTO user_oauth_account
+               (user_id, provider, provider_app_id, sub_id, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?)"#,
+        )
+        .bind(account.user_id)
+        .bind(&account.provider)
+        .bind(&account.provider_app_id)
+        .bind(&account.sub_id)
+        .bind(account.created_at)
+        .bind(account.updated_at)
+        .execute(&self.pool)
+        .await
+        .map_err(covert_error)?
+        .last_insert_id() as i64;
+        Ok(())
+    }
+
+    async fn create_user_with_oauth(
+        &self,
+        user: &mut UserInfo,
+        account: &mut OAuthAccount,
+    ) -> Result<(), AppError> {
+        let mut tx = self.pool.begin().await.map_err(covert_error)?;
+
+        user.id = sqlx::query(
+            r#"INSERT INTO user_info
+               (nick_name, avatar, signature, age, phone, salt, password,
+                created_at, updated_at, deleted_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+        )
+        .bind(&user.nick_name)
+        .bind(&user.avatar)
+        .bind(&user.signature)
+        .bind(user.age)
+        .bind(&user.phone)
+        .bind(&user.salt)
+        .bind(&user.password)
+        .bind(user.created_at)
+        .bind(user.updated_at)
+        .bind(user.deleted_at)
+        .execute(&mut *tx)
+        .await
+        .map_err(covert_error)?
+        .last_insert_id() as i64;
+
+        account.user_id = user.id;
+        account.id = sqlx::query(
+            r#"INSERT INTO user_oauth_account
+               (user_id, provider, provider_app_id, sub_id, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?)"#,
+        )
+        .bind(account.user_id)
+        .bind(&account.provider)
+        .bind(&account.provider_app_id)
+        .bind(&account.sub_id)
+        .bind(account.created_at)
+        .bind(account.updated_at)
+        .execute(&mut *tx)
+        .await
+        .map_err(covert_error)?
+        .last_insert_id() as i64;
+
+        tx.commit().await.map_err(covert_error)?;
+        Ok(())
     }
 
     /// 软删除用户（设置deleted_at时间戳）
@@ -122,7 +216,9 @@ impl UserRepo for MySqlUserRepo {
         let offset = (page - 1) * page_size;
         let users = sqlx::query_as!(
             UserInfo,
-            r#"SELECT * FROM user_info WHERE deleted_at = 0 ORDER BY id DESC LIMIT ? OFFSET ?"#,
+            r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
+                      created_at, updated_at, deleted_at
+               FROM user_info WHERE deleted_at = 0 ORDER BY id DESC LIMIT ? OFFSET ?"#,
             page_size as i64,
             offset as i64
         )
@@ -155,7 +251,9 @@ impl UserRepo for MySqlUserRepo {
 
         let users = sqlx::query_as!(
             UserInfo,
-            r#"SELECT * FROM user_info
+            r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
+                      created_at, updated_at, deleted_at
+               FROM user_info
                WHERE nick_name LIKE ? AND deleted_at = 0
                ORDER BY id DESC LIMIT ? OFFSET ?"#,
             search_pattern,
@@ -188,7 +286,6 @@ impl UserRepo for MySqlUserRepo {
                 UserUpdate::Signature(value) => query_builder.push("signature = ").push_bind(value),
                 UserUpdate::Age(value) => query_builder.push("age = ").push_bind(value),
                 UserUpdate::Phone(value) => query_builder.push("phone = ").push_bind(value),
-                UserUpdate::WxOpenId(value) => query_builder.push("wx_open_id = ").push_bind(value),
                 UserUpdate::Salt(value) => query_builder.push("salt = ").push_bind(value),
                 UserUpdate::Password(value) => query_builder.push("password = ").push_bind(value),
                 UserUpdate::UpdatedAt(value) => {

@@ -103,6 +103,7 @@ impl WechatRepo for WechatApiRepo {
         })?;
 
         Ok(WechatSession {
+            app_id: self.appid.clone(),
             open_id,
             session_key,
             union_id: response.unionid,

@@ -5,6 +5,7 @@ use tracing::info;
 
 use crate::core::Result;
 use crate::core::rest::AppError;
+use crate::models::oauth::OAuthAccount;
 use crate::models::user::UserInfo;
 use crate::ok;
 use crate::repos::kv::KvStore;
@@ -45,18 +46,21 @@ impl UserService {
 
     async fn get_or_create_wechat_user(
         &self,
+        app_id: &str,
         open_id: &str,
     ) -> std::result::Result<UserInfo, AppError> {
-        match self.repo.get_by_wx_open_id(open_id).await {
-            Ok(Some(user)) => Ok(user),
-            Ok(None) => {
-                let mut user = UserInfo::new_wechat(open_id.to_string());
-                self.repo.create(&mut user).await?;
-                info!(user_id = user.id, "created WeChat user");
-                Ok(user)
-            }
-            Err(err) => Err(err),
+        const PROVIDER: &str = "wechat";
+        if let Some(user) = self.repo.get_by_oauth(PROVIDER, app_id, open_id).await? {
+            return Ok(user);
         }
+
+        let mut user = UserInfo::new_external();
+        let mut account = OAuthAccount::new(0, PROVIDER, app_id, open_id);
+        self.repo
+            .create_user_with_oauth(&mut user, &mut account)
+            .await?;
+        info!(user_id = user.id, "created WeChat user");
+        Ok(user)
     }
 
     /// Pre-binds an email address by generating and storing a validation code
@@ -84,7 +88,9 @@ impl UserService {
     pub async fn wx_login(&self, req: WxMiniLoginRequest) -> Result<WxMiniLoginResponse> {
         debug!("WeChat login request received");
         let session = self.wechat.exchange_login_code(&req.code).await?;
-        let user = self.get_or_create_wechat_user(&session.open_id).await?;
+        let user = self
+            .get_or_create_wechat_user(&session.app_id, &session.open_id)
+            .await?;
         info!(user_id = user.id, "WeChat login succeeded");
         let resp = WxMiniLoginResponse {
             nick_name: user.nick_name,
