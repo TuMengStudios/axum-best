@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT * FROM user_info WHERE wx_open_id = ?",
+  "query": "SELECT id, nick_name, avatar, signature, age, phone, salt, password,\n                      created_at, updated_at, deleted_at, status\n               FROM user_info WHERE deleted_at = 0 ORDER BY id DESC LIMIT ? OFFSET ?",
   "describe": {
     "columns": [
       {
@@ -104,16 +104,16 @@
       },
       {
         "ordinal": 11,
-        "name": "wx_open_id",
+        "name": "status",
         "type_info": {
-          "type": "VarString",
-          "flags": "NOT_NULL | MULTIPLE_KEY",
-          "max_size": 400
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "max_size": 4
         }
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false,
@@ -130,5 +130,5 @@
       false
     ]
   },
-  "hash": "f667a11ab3d7c7b68ba98c4ad42cb2b2eb1c41aa2a94c1c98cf5f8d8fac908c6"
+  "hash": "aa1e8c6489022d7b9eb00cfde158ac664195787fda7e1cfa4358e27100842dfd"
 }

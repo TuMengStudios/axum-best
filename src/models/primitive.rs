@@ -1,9 +1,9 @@
 use std::fmt;
 
-/// 支持所有基础类型的枚举
+/// Enum covering all primitive types
 #[derive(Debug, Clone, PartialEq)]
 pub enum Primitive {
-    // 有符号整数类型
+    // Signed integer types
     I8(i8),
     I16(i16),
     I32(i32),
@@ -11,7 +11,7 @@ pub enum Primitive {
     I128(i128),
     Isize(isize),
 
-    // 无符号整数类型
+    // Unsigned integer types
     U8(u8),
     U16(u16),
     U32(u32),
@@ -19,20 +19,20 @@ pub enum Primitive {
     U128(u128),
     Usize(usize),
 
-    // 浮点类型
+    // Floating-point types
     F32(f32),
     F64(f64),
 
-    // 布尔类型
+    // Boolean type
     Bool(bool),
 
-    // 字符类型
+    // Character type
     Char(char),
 
-    // 字符串类型
+    // String type
     Str(String),
 
-    // 空值
+    // Null value
     Null,
 }
 
@@ -42,7 +42,7 @@ async fn todo2() {
     println!("{} {} --- {:?}", _p, _p.type_name(), _p)
 }
 impl Primitive {
-    /// 获取值的类型名称
+    /// Returns the type name of the value
     pub fn type_name(&self) -> &'static str {
         match self {
             Primitive::I8(_) => "i8",
@@ -66,7 +66,7 @@ impl Primitive {
         }
     }
 
-    /// 检查是否为数值类型
+    /// Checks whether the value is numeric
     pub fn is_numeric(&self) -> bool {
         matches!(
             self,
@@ -87,7 +87,7 @@ impl Primitive {
         )
     }
 
-    /// 检查是否为整数类型
+    /// Checks whether the value is an integer
     pub fn is_integer(&self) -> bool {
         matches!(
             self,
@@ -106,7 +106,7 @@ impl Primitive {
         )
     }
 
-    /// 检查是否为浮点类型
+    /// Checks whether the value is a float
     pub fn is_float(&self) -> bool {
         matches!(self, Primitive::F32(_) | Primitive::F64(_))
     }
@@ -137,7 +137,7 @@ impl fmt::Display for Primitive {
     }
 }
 
-// 为常见类型实现 From trait
+// Implement From for common types
 impl From<i32> for Primitive {
     fn from(value: i32) -> Self {
         Primitive::I32(value)
@@ -186,7 +186,7 @@ impl From<char> for Primitive {
     }
 }
 
-// 为其他整数类型实现 From trait
+// Implement From for the remaining integer types
 impl From<i8> for Primitive {
     fn from(value: i8) -> Self {
         Primitive::I8(value)

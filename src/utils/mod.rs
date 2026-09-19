@@ -11,30 +11,26 @@ use sha1::Sha1;
 use sha2::Sha256;
 use sha2::Sha512;
 
-/// 生成指定长度的数字验证码
-/// Generates a numeric verification code of specified length
+/// Generates a numeric verification code of the specified length
 ///
 /// # Arguments
-/// * `len` - 验证码长度 / Code length
+/// * `len` - Code length
 ///
 /// # Returns
-/// * `String` - 生成的验证码字符串 / Generated verification code string
+/// * `String` - Generated verification code string
 pub fn gen_valid_code(len: usize) -> String {
     let mut code = String::with_capacity(len);
 
     for i in 0..len {
-        // 生成随机数字 (0-9)
-        // Generate random digit (0-9)
+        // Generate a random digit (0-9)
         let mut digit = (random::<u8>() % 10).to_string();
 
-        // 如果第一位是0，重新生成以避免以0开头
-        // If first digit is 0, regenerate to avoid starting with 0
+        // If the first digit is 0, regenerate to avoid starting with 0
         if i == 0 && digit.contains("0") {
             digit = (random::<u8>() % 10).to_string()
         }
 
-        // 将数字添加到验证码字符串
-        // Add digit to verification code string
+        // Append the digit to the verification code string
         code.push_str(&digit);
     }
 
@@ -87,12 +83,12 @@ impl HashAlgorithm {
     }
 }
 
-/// 计算文件的哈希摘要
+/// Computes the hash digest of a file
 pub fn file_digest(path: &Path, algorithm: HashAlgorithm) -> Result<String> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
 
-    let mut buffer = [0; 8192]; // 8KB 缓冲区
+    let mut buffer = [0; 8192]; // 8 KB buffer
 
     match algorithm {
         HashAlgorithm::MD5 => {
@@ -118,7 +114,7 @@ pub fn file_digest(path: &Path, algorithm: HashAlgorithm) -> Result<String> {
     }
 }
 
-/// 通用的哈希计算辅助函数
+/// Generic hash computation helper
 fn copy_to_hasher<R, H>(reader: &mut R, hasher: &mut H, buffer: &mut [u8]) -> Result<()>
 where
     R: Read,

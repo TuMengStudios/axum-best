@@ -1,4 +1,4 @@
-//! 测试 UserInfo::random() 方法的唯一性
+//! Tests the uniqueness of the UserInfo::random() method
 
 use axum_best::models::user::UserInfo;
 
@@ -12,7 +12,7 @@ fn main() {
         println!("用户 {}: 昵称 = {}, 签名 = {}", i + 1, users[i].nick_name, users[i].signature);
     }
 
-    // 检查昵称重复
+    // Check for duplicate nicknames
     let mut nick_name_set = std::collections::HashSet::new();
     let mut duplicate_nick_names = Vec::new();
 
@@ -22,7 +22,7 @@ fn main() {
         }
     }
 
-    // 检查签名重复
+    // Check for duplicate signatures
     let mut signature_set = std::collections::HashSet::new();
     let mut duplicate_signatures = Vec::new();
 
@@ -49,7 +49,7 @@ fn main() {
         println!("❌ 重复的签名: {:?}", duplicate_signatures);
     }
 
-    // 生成更多用户进行更全面的测试
+    // Generate more users for a more thorough test
     println!("\n=== 扩展测试 (生成 100 个用户) ===");
     let mut large_nick_name_set = std::collections::HashSet::new();
     let mut large_signature_set = std::collections::HashSet::new();

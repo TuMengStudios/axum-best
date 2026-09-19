@@ -1,4 +1,5 @@
-//! Middleware for the transport layer.
+//! Request-id propagation: inject the request id into tracing spans and the
+//! response headers so every log line of a request is correlatable.
 
 use axum::extract::Request;
 use axum::http::HeaderValue;

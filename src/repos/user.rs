@@ -1,185 +1,79 @@
-use sqlx::MySqlPool;
-use sqlx::QueryBuilder;
+use async_trait::async_trait;
 
 use crate::core::rest::AppError;
-use crate::data::mysql::covert_error;
+use crate::models::oauth::OAuthAccount;
 use crate::models::user::UserInfo;
 
-/// 创建用户
-pub async fn create(conn: &MySqlPool, user: &mut UserInfo) -> Result<(), AppError> {
-    user.id = sqlx::query_as!(UserInfo,
-        r#"INSERT INTO user_info (nick_name, avatar, signature, age, phone, wx_open_id, salt, password, created_at, updated_at, deleted_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
-        user.nick_name,
-        user.avatar,
-        user.signature,
-        user.age,
-        user.phone,
-        user.wx_open_id,
-        user.salt,
-        user.password,
-        user.created_at,
-        user.updated_at,
-        user.deleted_at
-    )
-    .execute(conn)
-    .await
-    .map_err(covert_error)?
-    .last_insert_id() as i64;
-
-    Ok(())
+/// Type-safe description of a partial user update.
+#[derive(Debug, Clone)]
+pub enum UserUpdate {
+    NickName(String),
+    Avatar(String),
+    Signature(String),
+    Age(u8),
+    Phone(String),
+    Salt(String),
+    Password(String),
+    Status(i8),
+    UpdatedAt(i64),
 }
 
-/// 更新用户信息
-pub async fn update(conn: &MySqlPool, user: &UserInfo) -> Result<(), AppError> {
-    sqlx::query!(
-        r#"UPDATE user_info SET
-           nick_name = ?, avatar = ?, signature = ?, age = ?, phone = ?,
-           wx_open_id = ?, salt = ?, password = ?, updated_at = ?
-           WHERE id = ?"#,
-        user.nick_name,
-        user.avatar,
-        user.signature,
-        user.age,
-        user.phone,
-        user.wx_open_id,
-        user.salt,
-        user.password,
-        user.updated_at,
-        user.id
-    )
-    .execute(conn)
-    .await
-    .map_err(covert_error)?;
+/// User repository trait: defines only the data-access contract; concrete implementations are provided by the data layer.
+///
+/// The service layer depends only on this trait (`Arc<dyn UserRepo>`) and is unaware of the
+/// underlying storage, so mocks can be injected in unit tests.
+#[async_trait]
+pub trait UserRepo: Send + Sync {
+    /// Creates a user
+    async fn create(&self, user: &mut UserInfo) -> Result<(), AppError>;
 
-    Ok(())
-}
+    /// Updates user information
+    async fn update(&self, user: &UserInfo) -> Result<(), AppError>;
 
-/// 根据ID获取用户
-pub async fn get_by_id(conn: &MySqlPool, id: i64) -> Result<UserInfo, AppError> {
-    let user = sqlx::query_as!(UserInfo, r#"SELECT * FROM user_info WHERE id = ?"#, id)
-        .fetch_one(conn)
-        .await
-        .map_err(covert_error)?;
-    Ok(user)
-}
+    /// Gets a user by ID
+    async fn get_by_id(&self, id: i64) -> Result<UserInfo, AppError>;
 
-/// 根据手机号获取用户
-pub async fn get_by_phone(conn: &MySqlPool, phone: &str) -> Result<UserInfo, AppError> {
-    let user = sqlx::query_as!(UserInfo, r#"SELECT * FROM user_info WHERE phone = ?"#, phone)
-        .fetch_one(conn)
-        .await
-        .map_err(covert_error)?;
-    Ok(user)
-}
+    /// Gets a user by phone number
+    async fn get_by_phone(&self, phone: &str) -> Result<UserInfo, AppError>;
 
-/// 根据微信Open ID获取用户
-pub async fn get_by_wx_open_id(conn: &MySqlPool, wx_open_id: &str) -> Result<UserInfo, AppError> {
-    let user =
-        sqlx::query_as!(UserInfo, r#"SELECT * FROM user_info WHERE wx_open_id = ?"#, wx_open_id)
-            .fetch_one(conn)
-            .await
-            .map_err(covert_error)?;
-    Ok(user)
-}
+    /// Gets a user by third-party identity
+    async fn get_by_oauth(
+        &self,
+        provider: &str,
+        provider_app_id: &str,
+        sub_id: &str,
+    ) -> Result<Option<UserInfo>, AppError>;
 
-/// 软删除用户（设置deleted_at时间戳）
-pub async fn delete(conn: &MySqlPool, id: i64, deleted_at: i64) -> Result<(), AppError> {
-    sqlx::query!(r#"UPDATE user_info SET deleted_at = ? WHERE id = ?"#, deleted_at, id)
-        .execute(conn)
-        .await
-        .map_err(covert_error)?;
+    /// Creates a third-party identity link for a user
+    async fn create_oauth_account(&self, account: &mut OAuthAccount) -> Result<(), AppError>;
 
-    Ok(())
-}
+    /// Creates a user and its third-party identity link in the same transaction
+    async fn create_user_with_oauth(
+        &self,
+        user: &mut UserInfo,
+        account: &mut OAuthAccount,
+    ) -> Result<(), AppError>;
 
-/// 硬删除用户（从数据库中完全删除）
-pub async fn hard_delete(conn: &MySqlPool, id: i64) -> Result<(), AppError> {
-    sqlx::query!(r#"DELETE FROM user_info WHERE id = ?"#, id)
-        .execute(conn)
-        .await
-        .map_err(covert_error)?;
+    /// Soft-deletes a user (sets the deleted_at timestamp)
+    async fn delete(&self, id: i64, deleted_at: i64) -> Result<(), AppError>;
 
-    Ok(())
-}
+    /// Hard-deletes a user (removes the row from the database)
+    async fn hard_delete(&self, id: i64) -> Result<(), AppError>;
 
-/// 获取用户列表（分页查询）
-pub async fn list(conn: &MySqlPool, page: u32, page_size: u32) -> Result<Vec<UserInfo>, AppError> {
-    let offset = (page - 1) * page_size;
-    let users = sqlx::query_as!(
-        UserInfo,
-        r#"SELECT * FROM user_info WHERE deleted_at = 0 ORDER BY id DESC LIMIT ? OFFSET ?"#,
-        page_size as i64,
-        offset as i64
-    )
-    .fetch_all(conn)
-    .await
-    .map_err(covert_error)?;
+    /// Lists users (paginated query)
+    async fn list(&self, page: u32, page_size: u32) -> Result<Vec<UserInfo>, AppError>;
 
-    Ok(users)
-}
+    /// Counts users
+    async fn count(&self) -> Result<i64, AppError>;
 
-/// 获取用户总数
-pub async fn count(conn: &MySqlPool) -> Result<i64, AppError> {
-    let count = sqlx::query_scalar!(r#"SELECT COUNT(*) FROM user_info WHERE deleted_at = 0"#)
-        .fetch_one(conn)
-        .await
-        .map_err(covert_error)?;
+    /// Searches users by nickname
+    async fn search_by_nickname(
+        &self,
+        nickname: &str,
+        page: u32,
+        page_size: u32,
+    ) -> Result<Vec<UserInfo>, AppError>;
 
-    Ok(count)
-}
-
-/// 根据昵称搜索用户
-pub async fn search_by_nickname(
-    conn: &MySqlPool,
-    nickname: &str,
-    page: u32,
-    page_size: u32,
-) -> Result<Vec<UserInfo>, AppError> {
-    let offset = (page - 1) * page_size;
-    let search_pattern = format!("%{}%", nickname);
-
-    let users = sqlx::query_as!(
-        UserInfo,
-        r#"SELECT * FROM user_info
-           WHERE nick_name LIKE ? AND deleted_at = 0
-           ORDER BY id DESC LIMIT ? OFFSET ?"#,
-        search_pattern,
-        page_size as i64,
-        offset as i64
-    )
-    .fetch_all(conn)
-    .await
-    .map_err(covert_error)?;
-
-    Ok(users)
-}
-
-/// 更新用户部分信息（使用QueryBuilder动态构建更新语句）
-pub async fn update_partial(
-    conn: &MySqlPool,
-    id: i64,
-    updates: &[(&str, &str)],
-) -> Result<(), sqlx::Error> {
-    if updates.is_empty() {
-        return Ok(());
-    }
-
-    let mut query_builder = QueryBuilder::new("UPDATE user_info SET ");
-
-    for (i, (field, value)) in updates.iter().enumerate() {
-        if i > 0 {
-            query_builder.push(", ");
-        }
-        query_builder.push(field);
-        query_builder.push(" = ");
-        query_builder.push_bind(value);
-    }
-
-    query_builder.push(" WHERE id = ");
-    query_builder.push_bind(id);
-
-    query_builder.build().execute(conn).await?;
-
-    Ok(())
+    /// Updates part of a user's information (builds the update statement dynamically)
+    async fn update_partial(&self, id: i64, updates: &[UserUpdate]) -> Result<(), AppError>;
 }

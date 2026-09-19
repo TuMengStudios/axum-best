@@ -1,61 +1,29 @@
-use derivative::Derivative;
-use r2d2::PooledConnection;
-use redis::Client;
-use serde::Deserialize;
-use sqlx::MySqlPool;
-use tracing::error;
+use std::sync::Arc;
 
-use crate::core::rest::AppError;
-use crate::data::cache::RedisPool;
-use crate::errors;
+use crate::conf::AppConf;
+use crate::services::foo::FooService;
+use crate::services::user::UserService;
 
-#[derive(Deserialize, Derivative, Clone)]
-#[derivative(Debug)]
-pub struct WeChatConf {
-    pub appid: String,
-    #[derivative(Debug = "ignore")]
-    pub secret: String,
-}
-
-#[allow(unused)]
+/// Application state: owns all services and the application configuration.
+///
+/// Dependency direction: handlers -> services -> repos(trait) <- data(implementations).
+/// Infrastructure such as connection pools is owned by the data-layer repository
+/// implementations and no longer appears on AppState.
+/// The configuration is shared via `Arc<AppConf>`: AppState is cloned on every request,
+/// and the Arc ensures cloning only bumps the reference count instead of copying the config.
 #[derive(Clone)]
 pub struct AppState {
-    pub db_conn: MySqlPool,
-    pub redis_pool: RedisPool,
-    pub wechat: WeChatConf,
+    pub cfg: Arc<AppConf>,
+    pub user_service: UserService,
+    pub foo_service: FooService,
 }
 
 impl AppState {
-    pub fn new(conn: MySqlPool, redis_pool: RedisPool, wechat: WeChatConf) -> AppState {
+    pub fn new(cfg: Arc<AppConf>, user_service: UserService, foo_service: FooService) -> AppState {
         AppState {
-            db_conn: conn,
-            redis_pool,
-            wechat,
+            cfg,
+            user_service,
+            foo_service,
         }
-    }
-
-    /// Returns a cloned database connection pool
-    ///
-    /// This method provides access to the application's database connection pool
-    /// by returning a cloned instance. The clone operation is lightweight as
-    /// `MySqlPool` uses Arc internally for shared ownership.
-    ///
-    /// # Returns
-    /// - `MySqlPool`: A cloned instance of the database connection pool
-    ///
-    /// # Note
-    /// - The returned pool can be used to execute database queries
-    /// - Each clone shares the same underlying connection pool
-    /// - This method does not establish new connections, it reuses existing ones
-    pub fn get_conn(&self) -> MySqlPool {
-        self.db_conn.clone()
-    }
-
-    pub fn get_redis_client(&self) -> core::result::Result<PooledConnection<Client>, AppError> {
-        let conn = self.redis_pool.get().map_err(|err| {
-            error!("get redis client error {}", err);
-            errors::ErrRedisClient.clone()
-        })?;
-        Ok(conn)
     }
 }

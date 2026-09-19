@@ -68,6 +68,30 @@ listen = "0.0.0.0"
 # Common ports: 80 (HTTP), 443 (HTTPS), 8080 (development)
 port = 8080
 
+# Request time budget enforced by the timeout middleware, in seconds
+# The budget covers request handling including response compression.
+# Defaults to 30 seconds.
+timeout_secs = 30
+
+# Path prefixes excluded from the request timeout middleware (30s budget)
+# Segment-aware prefix match: "/stream" excludes "/stream" and "/stream/1"
+# but not "/streaming". Useful for SSE streams, file uploads or reports.
+# Defaults to an empty list (no exclusions).
+timeout_excluded_paths = []
+
+# Path prefixes whose responses skip the compression middleware
+# Same segment-aware prefix match. Useful for endpoints that stream (SSE)
+# or already emit compressed content (images, videos, archives).
+# Defaults to an empty list (compress everything compressible).
+compression_excluded_paths = []
+
+
+[jwt]
+# HMAC secret used to sign and validate bearer tokens. This value is required.
+secret = "replace-this-secret"
+# Lifetime of issued tokens, in seconds.
+expiration_secs = 3600
+
 
 [mysql]
 # MySQL database configuration section

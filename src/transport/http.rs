@@ -20,6 +20,29 @@ pub struct HttpConf {
     /// Defaults to 8080, which is a common development port
     #[default(8080)]
     pub port: u16,
+
+    /// Request time budget enforced by the timeout middleware, in seconds
+    ///
+    /// Defaults to 30 seconds. The budget covers request handling including
+    /// response compression, but not CORS/request-id bookkeeping.
+    #[default(30)]
+    pub timeout_secs: u64,
+
+    /// Path prefixes excluded from the request timeout middleware
+    ///
+    /// Segment-aware prefix match: "/stream" excludes "/stream" and "/stream/1"
+    /// but not "/streaming". Useful for SSE streams, file uploads or reports.
+    /// Defaults to an empty list (no exclusions).
+    #[serde(default)]
+    pub timeout_excluded_paths: Vec<String>,
+
+    /// Path prefixes whose responses skip the compression middleware
+    ///
+    /// Segment-aware prefix match, same semantics as `timeout_excluded_paths`.
+    /// Useful for endpoints that stream (SSE) or already emit compressed
+    /// content. Defaults to an empty list (compress everything compressible).
+    #[serde(default)]
+    pub compression_excluded_paths: Vec<String>,
 }
 
 impl HttpConf {
@@ -27,7 +50,7 @@ impl HttpConf {
     ///
     /// # Returns
     /// A string containing the formatted address (e.g., "0.0.0.0:8080")
-    pub fn address(&self) -> String {
+    fn address(&self) -> String {
         format!("{}:{}", self.listen, self.port)
     }
 }
