@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS user_info(
     created_at BIGINT NOT NULL DEFAULT 0,
     updated_at BIGINT NOT NULL DEFAULT 0,
     deleted_at BIGINT NOT NULL DEFAULT 0,
+    status TINYINT NOT NULL DEFAULT 0,
     INDEX idx_phone (phone),
     INDEX idx_created_at (created_at)
 );

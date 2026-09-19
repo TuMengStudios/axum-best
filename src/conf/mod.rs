@@ -1,9 +1,10 @@
 use derivative::Derivative;
 use serde::Deserialize;
 
-use crate::core::state::WeChatConf;
+use crate::auth::JwtConfig;
 use crate::data::cache::RedisConf;
 use crate::data::mysql::MysqlConf;
+use crate::data::wechat::WeChatConf;
 use crate::logx::LogConfig;
 use crate::transport::http::HttpConf;
 
@@ -36,7 +37,12 @@ pub struct AppConf {
     /// redis config
     pub redis: RedisConf,
 
-    pub wechat: WeChatConf,
+    /// JWT authentication configuration
+    #[derivative(Debug = "ignore")]
+    pub jwt: JwtConfig,
+
+    /// WeChat mini-program configuration
+    pub(crate) wechat: WeChatConf,
 }
 
 impl AppConf {

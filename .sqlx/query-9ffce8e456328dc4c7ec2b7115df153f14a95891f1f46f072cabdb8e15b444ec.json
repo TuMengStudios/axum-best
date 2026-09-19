@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT * FROM user_info WHERE phone = ?",
+  "query": "SELECT id, nick_name, avatar, signature, age, phone, salt, password,\n                      created_at, updated_at, deleted_at, status\n               FROM user_info WHERE phone = ?",
   "describe": {
     "columns": [
       {
@@ -104,11 +104,11 @@
       },
       {
         "ordinal": 11,
-        "name": "wx_open_id",
+        "name": "status",
         "type_info": {
-          "type": "VarString",
-          "flags": "NOT_NULL | MULTIPLE_KEY",
-          "max_size": 400
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "max_size": 4
         }
       }
     ],
@@ -130,5 +130,5 @@
       false
     ]
   },
-  "hash": "f73beb7b3b108b72a4bf44afe4f881704b15a6917a2e32246b283f7b2969180b"
+  "hash": "9ffce8e456328dc4c7ec2b7115df153f14a95891f1f46f072cabdb8e15b444ec"
 }
