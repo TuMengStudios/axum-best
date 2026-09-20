@@ -12,6 +12,9 @@ keywords = [
 license = "MIT"
 readme = "README.md"
 
+[workspace]
+members = ["crates/nextid"]
+
 [dependencies]
 tokio = { version = "1.47.1", features = ["full"] }
 async-trait = "0.1"
