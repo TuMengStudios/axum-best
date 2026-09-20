@@ -1,0 +1,15 @@
+[package]
+name = "nextid"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bson = { version = "3.1" }
+hex = { version = "0.4" }
+
+[dev-dependencies]
+criterion = { version = "0.7.0", features = ["html_reports"] }
+
+[[bench]]
+name = "next_id"
+harness = false
