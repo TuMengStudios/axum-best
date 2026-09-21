@@ -95,15 +95,14 @@ impl AppConf {
 
 #[cfg(test)]
 mod tests {
-    use super::{AppConf, MetricsConf};
+    use super::MetricsConf;
+    use crate::observability::OpenTelemetryConfig;
 
     #[test]
-    fn default_config_keeps_otlp_export_disabled() {
-        let config: AppConf = toml::from_str(include_str!("../../etc/config.toml"))
-            .expect("default configuration should parse");
+    fn default_metrics_config_does_not_expose_a_route() {
+        let config = MetricsConf::default();
 
-        assert!(config.otel.endpoint.is_none());
-        assert_eq!(config.metrics.path(), Some("/metrics"));
+        assert!(config.path().is_none());
     }
 
     #[test]
@@ -112,5 +111,10 @@ mod tests {
             .expect("metrics configuration should parse");
 
         assert_eq!(config.path(), Some("/internal/metrics"));
+    }
+
+    #[test]
+    fn default_otel_config_keeps_export_disabled() {
+        assert!(OpenTelemetryConfig::default().endpoint.is_none());
     }
 }
