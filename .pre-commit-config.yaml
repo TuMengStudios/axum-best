@@ -9,7 +9,7 @@ repos:
       - id: check-symlinks
       - id: check-yaml
       - id: end-of-file-fixer
-        # tests/index.txt is a byte-exact digest fixture (see src/utils/mod.rs test_file_digest),
+        # tests/index.txt is a byte-exact digest fixture (see src/utils/hash.rs test_file_digest),
         # any change breaks the hardcoded hashes.
         exclude: ^tests/index\.txt$
       - id: mixed-line-ending
