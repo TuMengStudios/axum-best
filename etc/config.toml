@@ -62,8 +62,8 @@ tracer_name = "my-app"
 
 
 [metrics]
-# Prometheus metrics endpoint. Leave this unset to disable the route.
-# path = "/metrics"
+# Prometheus metrics endpoint. Set this to an empty string to disable the route.
+path = "/metrics"
 
 
 [http]

@@ -103,7 +103,7 @@ mod tests {
             .expect("default configuration should parse");
 
         assert!(config.otel.endpoint.is_none());
-        assert!(config.metrics.path().is_none());
+        assert_eq!(config.metrics.path(), Some("/metrics"));
     }
 
     #[test]
