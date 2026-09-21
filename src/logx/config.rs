@@ -4,6 +4,8 @@ use tracing::Level;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::Rotation;
 use tracing_subscriber::fmt::time::ChronoLocal;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[derive(Debug, Deserialize, SmartDefault)]
 pub struct LogConfig {
@@ -98,7 +100,10 @@ impl LogConfig {
     ///
     /// # Errors
     /// - Returns an error if the logging system fails to initialize
-    pub fn init_log(&self) -> anyhow::Result<WorkerGuard> {
+    pub fn init_log(
+        &self,
+        tracer: opentelemetry_sdk::trace::Tracer,
+    ) -> anyhow::Result<WorkerGuard> {
         let file_appender = tracing_appender::rolling::Builder::new()
             .rotation(self.get_rotation())
             .max_log_files(self.get_max_files())
@@ -123,9 +128,18 @@ impl LogConfig {
 
         // json format
         if self.is_json() {
-            builder.json().init();
+            builder
+                .json()
+                .finish()
+                .with(tracing_opentelemetry::layer().with_tracer(tracer))
+                .try_init()
+                .map_err(|err| anyhow::anyhow!("initialize tracing subscriber failed: {err}"))?;
         } else {
-            builder.init();
+            builder
+                .finish()
+                .with(tracing_opentelemetry::layer().with_tracer(tracer))
+                .try_init()
+                .map_err(|err| anyhow::anyhow!("initialize tracing subscriber failed: {err}"))?;
         }
         Ok(guard)
     }
