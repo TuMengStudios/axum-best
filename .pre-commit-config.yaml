@@ -72,3 +72,11 @@ repos:
         language: rust
         files: \.rs$
         pass_filenames: false
+      - id: commitlint
+        name: commitlint
+        description: lint git commit messages
+        entry: commitlint lint --config .commitlint.yaml --message
+        language: system
+        stages: [commit-msg]
+        pass_filenames: true
+        always_run: true
