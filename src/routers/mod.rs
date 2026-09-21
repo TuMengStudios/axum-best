@@ -8,7 +8,6 @@ use tower::ServiceBuilder;
 use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::trace;
 use tower_http::trace::TraceLayer;
-use tower_request_id::RequestIdLayer;
 use tracing::Level;
 
 use crate::core::state::AppState;
@@ -19,8 +18,6 @@ use crate::transport::middleware::auth;
 use crate::transport::middleware::compression;
 use crate::transport::middleware::cors;
 use crate::transport::middleware::otel;
-use crate::transport::middleware::request_id::inject_request_id;
-use crate::transport::middleware::request_id::make_request_span;
 use crate::transport::middleware::timeout;
 
 async fn not_implemented() -> crate::core::Result<u8> {
@@ -29,7 +26,6 @@ async fn not_implemented() -> crate::core::Result<u8> {
 
 pub fn app_routers(state: AppState) -> Router {
     let trace_layer = TraceLayer::new_for_http()
-        .make_span_with(make_request_span)
         .on_response(trace::DefaultOnResponse::new().level(Level::INFO))
         .on_request(trace::DefaultOnRequest::new().level(Level::INFO))
         .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR))
@@ -42,8 +38,6 @@ pub fn app_routers(state: AppState) -> Router {
     //
     // Middleware stack, outermost to innermost (each `.layer()` call wraps
     // everything above it, so the last call is the outermost):
-    //   RequestIdLayer        inserts the RequestId extension
-    //   inject_request_id     tags every log line with the request id
     //   CORS
     //   timeout               time budget (covers compression work)
     //   compression           negotiates from Accept-Encoding
@@ -67,9 +61,8 @@ pub fn app_routers(state: AppState) -> Router {
         .layer(layer)
         .layer(middleware::from_fn(otel::middleware))
         .layer(middleware::from_fn_with_state(
-            compression::CompressionConfig::new().with_excluded_prefixes(
-                state.cfg.http.compression_excluded_paths.iter().cloned(),
-            ),
+            compression::CompressionConfig::new()
+                .with_excluded_prefixes(state.cfg.http.compression_excluded_paths.iter().cloned()),
             compression::middleware,
         ))
         .layer(middleware::from_fn_with_state(
@@ -78,9 +71,5 @@ pub fn app_routers(state: AppState) -> Router {
             timeout::middleware,
         ))
         .layer(cors::layer(&state.cfg.http.cors_allowed_origins))
-        // RequestIdLayer must stay outermost: it inserts the RequestId extension that
-        // `inject_request_id` reads to tag logs and response headers.
-        .layer(middleware::from_fn(inject_request_id))
-        .layer(RequestIdLayer)
         .with_state(state)
 }
