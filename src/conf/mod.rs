@@ -9,6 +9,20 @@ use crate::logx::LogConfig;
 use crate::observability::OpenTelemetryConfig;
 use crate::transport::HttpConf;
 
+/// Prometheus metrics endpoint and its protection settings.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct MetricsConf {
+    /// Metrics endpoint path. The route is disabled when this is absent or empty.
+    #[serde(default)]
+    pub path: Option<String>,
+}
+
+impl MetricsConf {
+    pub fn path(&self) -> Option<&str> {
+        self.path.as_deref().filter(|path| !path.is_empty())
+    }
+}
+
 /// Application configuration structure
 ///
 /// This struct represents the complete configuration for the Axum Best application.
@@ -26,6 +40,10 @@ pub struct AppConf {
     /// OpenTelemetry configuration. Without an endpoint, traces remain in local logs.
     #[serde(default)]
     pub otel: OpenTelemetryConfig,
+
+    /// Prometheus metrics configuration. The route is disabled by default.
+    #[serde(default)]
+    pub metrics: MetricsConf,
 
     /// HTTP server configuration section
     ///
@@ -77,7 +95,7 @@ impl AppConf {
 
 #[cfg(test)]
 mod tests {
-    use super::AppConf;
+    use super::{AppConf, MetricsConf};
 
     #[test]
     fn default_config_keeps_otlp_export_disabled() {
@@ -85,5 +103,14 @@ mod tests {
             .expect("default configuration should parse");
 
         assert!(config.otel.endpoint.is_none());
+        assert!(config.metrics.path().is_none());
+    }
+
+    #[test]
+    fn metrics_settings_are_configurable() {
+        let config: MetricsConf = toml::from_str("path = \"/internal/metrics\"")
+            .expect("metrics configuration should parse");
+
+        assert_eq!(config.path(), Some("/internal/metrics"));
     }
 }

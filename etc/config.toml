@@ -61,6 +61,11 @@ format = "json"
 tracer_name = "my-app"
 
 
+[metrics]
+# Prometheus metrics endpoint. Leave this unset to disable the route.
+# path = "/metrics"
+
+
 [http]
 # HTTP server configuration section
 # -----------------------------------------------------------------------------
