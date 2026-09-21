@@ -99,9 +99,10 @@ cors_allowed_origins = ["http://localhost:3000"]
 
 
 [jwt]
-# HMAC secret used to sign and validate bearer tokens. This value is required.
+# HMAC secret used to sign and validate bearer tokens.
+# Prefer configuring this through the JWT_SECRET environment variable, especially in production.
 secret = "replace-this-secret"
-# Lifetime of issued tokens, in seconds.
+# Lifetime of issued tokens, in seconds. Can be overridden with JWT_EXPIRATION_SECS.
 expiration_secs = 3600
 
 

@@ -11,24 +11,61 @@ fn default_expiration_secs() -> i64 {
 }
 
 /// JWT settings used by the authentication middleware.
-#[derive(Debug, Clone, Deserialize)]
+///
+/// Values from the environment take precedence over the TOML configuration:
+/// `JWT_SECRET` and `JWT_EXPIRATION_SECS`. In production, configure the secret
+/// through `JWT_SECRET` rather than storing it in the configuration file.
+#[derive(Debug, Clone)]
 pub struct JwtConfig {
     /// HMAC secret used to sign and validate tokens.
-    #[serde(deserialize_with = "deserialize_secret")]
     pub secret: String,
 
     /// Lifetime of newly issued tokens, in seconds.
-    #[serde(default = "default_expiration_secs")]
     pub expiration_secs: i64,
 }
 
-fn deserialize_secret<'de, D>(deserializer: D) -> Result<String, D::Error>
+#[derive(Deserialize)]
+struct JwtConfigFile {
+    secret: Option<String>,
+    expiration_secs: Option<i64>,
+}
+
+impl<'de> Deserialize<'de> for JwtConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let file = JwtConfigFile::deserialize(deserializer)?;
+        let secret = std::env::var("JWT_SECRET")
+            .ok()
+            .or(file.secret)
+            .ok_or_else(|| serde::de::Error::custom("jwt.secret or JWT_SECRET must be set"))?;
+        let expiration_secs = std::env::var("JWT_EXPIRATION_SECS")
+            .ok()
+            .map(|value| {
+                value.parse::<i64>().map_err(|err| {
+                    serde::de::Error::custom(format!(
+                        "JWT_EXPIRATION_SECS must be an integer: {err}"
+                    ))
+                })
+            })
+            .transpose()?
+            .or(file.expiration_secs)
+            .unwrap_or_else(default_expiration_secs);
+
+        validate_secret::<D::Error>(secret).map(|secret| Self {
+            secret,
+            expiration_secs,
+        })
+    }
+}
+
+fn validate_secret<E>(secret: String) -> Result<String, E>
 where
-    D: serde::Deserializer<'de>,
+    E: serde::de::Error,
 {
-    let secret = String::deserialize(deserializer)?;
     if secret.trim().is_empty() {
-        return Err(serde::de::Error::custom("jwt.secret must not be empty"));
+        return Err(E::custom("jwt.secret and JWT_SECRET must not be empty"));
     }
     Ok(secret)
 }
@@ -98,5 +135,11 @@ mod tests {
 
         let empty = toml::from_str::<JwtConfig>("secret = \"  \"\nexpiration_secs = 60");
         assert!(empty.is_err());
+    }
+
+    #[test]
+    fn expiration_defaults_when_omitted() {
+        let config = toml::from_str::<JwtConfig>("secret = \"test-secret\"").unwrap();
+        assert_eq!(config.expiration_secs, 3600);
     }
 }

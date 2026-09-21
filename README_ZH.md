@@ -194,7 +194,7 @@ cargo run -- --conf etc/config.toml
 - `[mysql]` — DSN、连接池大小、慢查询阈值
 - `[redis]` — Redis 地址与连接池配置
 - `[wechat]` — 微信小程序 `appid` 与 `secret`
-- `[jwt]` — JWT 签名密钥 `secret` 与令牌有效期 `expiration_secs`；`secret` 必须配置且不能为空
+- `[jwt]` — JWT 签名密钥 `secret` 与令牌有效期 `expiration_secs`；也可以使用环境变量 `JWT_SECRET` 和 `JWT_EXPIRATION_SECS` 覆盖配置文件中的值。生产环境建议通过 `JWT_SECRET` 配置密钥，避免写入配置文件
 - 限流配置 — 当前 route 级别的限流规则配置在 `src/routers/mod.rs` 中，暂不从 TOML 加载
 
 `.env` 文件供 `sqlx-cli` 和 SQLx 编译期查询检查使用（`DATABASE_URL=mysql://root:123456@localhost:3306/axum_best`）。
