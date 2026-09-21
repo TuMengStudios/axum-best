@@ -63,7 +63,7 @@ pub fn app_routers(state: AppState) -> Router {
         .route("/user/wx/login", post(userHandler::wechat_login))
         .route(
             "/health",
-            get(health::health).layer(RateLimitLayer::with_quota(Duration::from_secs(1), 2, 2)),
+            get(health::health).layer(RateLimitLayer::with_quota(Duration::from_secs(10), 2, 2)),
         )
         .fallback(not_implemented)
         .layer(layer)
