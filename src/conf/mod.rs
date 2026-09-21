@@ -7,7 +7,7 @@ use crate::data::mysql::MysqlConf;
 use crate::data::wechat::WeChatConf;
 use crate::logx::LogConfig;
 use crate::observability::OpenTelemetryConfig;
-use crate::transport::http::HttpConf;
+use crate::transport::HttpConf;
 
 /// Application configuration structure
 ///

@@ -1,3 +1,4 @@
+use anyhow::Context as _;
 use axum_best::app::AppContext;
 use axum_best::conf;
 use clap::Parser;
@@ -22,17 +23,13 @@ async fn main() -> anyhow::Result<()> {
     setup_panic!();
 
     let args = Args::parse();
-    let cfg = conf::AppConf::from_path(&args.conf)
-        .map_err(|err| anyhow::anyhow!("parser conf file error {:?}", err))?;
+    let cfg = conf::AppConf::from_path(&args.conf).context("parser conf file error")?;
 
     let app_context = AppContext::new(cfg)
         .await
-        .map_err(|err| anyhow::anyhow!("build app context error {}", err))?;
+        .context("build app context error")?;
 
     //
-    app_context
-        .start()
-        .await
-        .map_err(|err| anyhow::anyhow!("start server error {}", err))?;
+    app_context.start().await.context("start server error")?;
     Ok(())
 }
