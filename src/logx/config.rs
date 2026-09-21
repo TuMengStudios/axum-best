@@ -1,11 +1,50 @@
 use serde::Deserialize;
 use smart_default::SmartDefault;
+use tracing::Event;
 use tracing::Level;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::Rotation;
+use tracing_subscriber::fmt::FmtContext;
+use tracing_subscriber::fmt::format::{Format, FormatEvent, FormatFields, Json, Writer};
 use tracing_subscriber::fmt::time::ChronoLocal;
 use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::util::SubscriberInitExt;
+
+const GIT_COMMIT_ID: &str = gitver::git_version!(fallback = "");
+
+struct CommitJson<T> {
+    inner: Format<Json, T>,
+}
+
+impl<S, N, T> FormatEvent<S, N> for CommitJson<T>
+where
+    S: tracing::Subscriber + for<'a> LookupSpan<'a>,
+    N: for<'a> FormatFields<'a> + 'static,
+    T: tracing_subscriber::fmt::time::FormatTime,
+{
+    fn format_event(
+        &self,
+        ctx: &FmtContext<'_, S, N>,
+        mut writer: Writer<'_>,
+        event: &Event<'_>,
+    ) -> std::fmt::Result {
+        if GIT_COMMIT_ID.is_empty() {
+            return self.inner.format_event(ctx, writer, event);
+        }
+
+        let mut output = String::new();
+        self.inner
+            .format_event(ctx, Writer::new(&mut output), event)?;
+        let mut json: serde_json::Value =
+            serde_json::from_str(&output).map_err(|_| std::fmt::Error)?;
+        if let serde_json::Value::Object(fields) = &mut json {
+            fields.insert("commit".to_owned(), GIT_COMMIT_ID.into());
+        }
+        writeln!(writer, "{}", serde_json::to_string(&json).map_err(|_| std::fmt::Error)?)?;
+        Ok(())
+    }
+}
 
 #[derive(Debug, Deserialize, SmartDefault)]
 pub struct LogConfig {
@@ -116,26 +155,35 @@ impl LogConfig {
 
         let timer = ChronoLocal::new(self.time_format.clone());
 
-        let builder = tracing_subscriber::fmt()
-            .with_ansi(false)
-            .with_timer(timer)
-            .with_target(true)
-            .with_line_number(true)
-            .with_file(true)
-            .with_level(true)
-            .with_max_level(self.log_level())
-            .with_writer(writer);
-
         // json format
         if self.is_json() {
-            builder
+            let format = tracing_subscriber::fmt::format()
                 .json()
+                .with_ansi(false)
+                .with_timer(timer)
+                .with_target(true)
+                .with_line_number(true)
+                .with_file(true)
+                .with_level(true);
+            tracing_subscriber::fmt()
+                .json()
+                .event_format(CommitJson { inner: format })
+                .with_max_level(self.log_level())
+                .with_writer(writer)
                 .finish()
                 .with(tracing_opentelemetry::layer().with_tracer(tracer))
                 .try_init()
                 .map_err(|err| anyhow::anyhow!("initialize tracing subscriber failed: {err}"))?;
         } else {
-            builder
+            tracing_subscriber::fmt()
+                .with_ansi(false)
+                .with_timer(timer)
+                .with_target(true)
+                .with_line_number(true)
+                .with_file(true)
+                .with_level(true)
+                .with_max_level(self.log_level())
+                .with_writer(writer)
                 .finish()
                 .with(tracing_opentelemetry::layer().with_tracer(tracer))
                 .try_init()
