@@ -67,7 +67,6 @@ sha2 = { version = "0.10.9" }
 sha1 = { version = "0.10.6" }
 md-5 = { version = "0.10.6" }
 digest = { version = "0.10.7" }
-tower-request-id = { version = "0.3.0" }
 reqwest = { version = "0.12.23", default-features = false, features = ["json", "rustls-tls"] }
 local-ip-address = "0.6.5"
 
