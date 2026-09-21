@@ -14,6 +14,8 @@ use governor::state::keyed::DashMapStateStore;
 use governor::{Quota, RateLimiter};
 use tower::{Layer, Service};
 
+use crate::auth::Claims;
+
 type KeyedLimiter = RateLimiter<String, DashMapStateStore<String>, DefaultClock>;
 type BoxFuture = Pin<Box<dyn Future<Output = Result<Response, Infallible>> + Send>>;
 
@@ -62,6 +64,21 @@ impl RateLimitLayer {
                     .unwrap_or_else(|| format!("rate_ip_unknown_{}", path))
             }),
         }
+    }
+
+    /// Creates a rate-limit layer keyed by the authenticated user's ID and path.
+    pub fn with_login_quota(period: Duration, requests: u32, burst: u32) -> Self {
+        Self::with_quota(period, requests, burst).with_key_extractor(Self::user_key)
+    }
+
+    fn user_key(request: &Request<Body>) -> String {
+        let path = request.uri().path().replace('/', "_");
+        let user_id = request
+            .extensions()
+            .get::<Claims>()
+            .map(|claims| claims.user_id.to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+        format!("rate_user_{}_{}", path, user_id)
     }
 
     pub fn with_key_extractor(

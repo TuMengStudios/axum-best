@@ -55,6 +55,7 @@ pub fn app_routers(state: AppState) -> Router {
             "/foo",
             get(foo::foo).layer(RateLimitLayer::with_quota(Duration::from_secs(1), 10, 10)),
         )
+        .layer(RateLimitLayer::with_login_quota(Duration::from_secs(1), 10, 10))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth::auth));
 
     Router::new()
