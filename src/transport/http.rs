@@ -24,7 +24,7 @@ pub struct HttpConf {
     /// Request time budget enforced by the timeout middleware, in seconds
     ///
     /// Defaults to 30 seconds. The budget covers request handling including
-    /// response compression, but not CORS/request-id bookkeeping.
+    /// response compression, but not CORS bookkeeping.
     #[default(30)]
     pub timeout_secs: u64,
 
