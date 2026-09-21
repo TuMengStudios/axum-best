@@ -179,6 +179,8 @@ cargo build --release
 
 Configuration is loaded from a TOML file (default: `etc/config.toml`). The file path can be overridden via the command line:
 
+JWT settings can be overridden through the `JWT_SECRET` and `JWT_EXPIRATION_SECS` environment variables. Environment variables take precedence over `[jwt]` values in the TOML file. Configure `JWT_SECRET` through the environment in production instead of storing the signing secret in the configuration file.
+
 ```bash
 cargo run -- --conf etc/config.toml
 ```
