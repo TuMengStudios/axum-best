@@ -77,7 +77,7 @@ pub fn app_routers(state: AppState) -> Router {
                 .with_excluded_prefixes(state.cfg.http.timeout_excluded_paths.iter().cloned()),
             timeout::middleware,
         ))
-        .layer(cors::layer())
+        .layer(cors::layer(&state.cfg.http.cors_allowed_origins))
         // RequestIdLayer must stay outermost: it inserts the RequestId extension that
         // `inject_request_id` reads to tag logs and response headers.
         .layer(middleware::from_fn(inject_request_id))

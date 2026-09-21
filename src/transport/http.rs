@@ -43,6 +43,14 @@ pub struct HttpConf {
     /// content. Defaults to an empty list (compress everything compressible).
     #[serde(default)]
     pub compression_excluded_paths: Vec<String>,
+
+    /// Origins allowed to make cross-origin requests.
+    ///
+    /// Set to `['*']` to allow any origin. When using an explicit list,
+    /// credentialed requests are allowed; wildcard mode intentionally does
+    /// not allow credentials because browsers reject that combination.
+    #[serde(default)]
+    pub cors_allowed_origins: Vec<String>,
 }
 
 impl HttpConf {
