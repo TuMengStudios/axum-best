@@ -18,6 +18,7 @@ use crate::transport::middleware::auth;
 use crate::transport::middleware::compression;
 use crate::transport::middleware::cors;
 use crate::transport::middleware::otel;
+use crate::transport::middleware::rate_limit::RateLimitLayer;
 use crate::transport::middleware::timeout;
 
 async fn not_implemented() -> crate::core::Result<u8> {
@@ -46,17 +47,51 @@ pub fn app_routers(state: AppState) -> Router {
     //   tracing
     //   routes
     let protected_routes = Router::new()
-        .route("/user/{id}", get(userHandler::user_by_id))
-        .route("/user/email", post(userHandler::bind_email))
-        .route("/user/email/pre", post(userHandler::pre_bind_email))
-        .route("/user/random", get(userHandler::random_user))
-        .route("/foo", get(foo::foo))
+        .route(
+            "/user/{id}",
+            get(userHandler::user_by_id).layer(RateLimitLayer::with_login_quota(
+                Duration::from_secs(5),
+                2,
+                2,
+            )),
+        )
+        .route(
+            "/user/email",
+            post(userHandler::bind_email).layer(RateLimitLayer::with_login_quota(
+                Duration::from_secs(10),
+                3,
+                3,
+            )),
+        )
+        .route(
+            "/user/email/pre",
+            post(userHandler::pre_bind_email).layer(RateLimitLayer::with_login_quota(
+                Duration::from_secs(10),
+                2,
+                2,
+            )),
+        )
+        .route(
+            "/user/random",
+            get(userHandler::random_user).layer(RateLimitLayer::with_login_quota(
+                Duration::from_secs(5),
+                2,
+                2,
+            )),
+        )
+        .route(
+            "/foo",
+            get(foo::foo).layer(RateLimitLayer::with_login_quota(Duration::from_secs(5), 2, 2)),
+        )
         .route_layer(middleware::from_fn_with_state(state.clone(), auth::auth));
 
     Router::new()
         .merge(protected_routes)
         .route("/user/wx/login", post(userHandler::wechat_login))
-        .route("/health", get(health::health))
+        .route(
+            "/health",
+            get(health::health).layer(RateLimitLayer::with_quota(Duration::from_secs(10), 2, 2)),
+        )
         .fallback(not_implemented)
         .layer(layer)
         .layer(middleware::from_fn(otel::middleware))

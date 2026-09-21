@@ -17,7 +17,8 @@ axum-best 是一个基于 [Axum](https://github.com/tokio-rs/axum) 和 [Tokio](h
 - **Redis 缓存**：通过 `bb8-redis` 异步连接池（tokio 原生，r2d2 风格 API，基于 `redis` crate）实现缓存与会话类存储
 - **请求校验**：使用 `validator` 和 `axum-valid` 进行输入校验
 - **JWT 认证**：使用 `jsonwebtoken` 校验 Bearer Token；受保护处理器可直接声明 `Claims` 参数获取用户信息
-- **中间件栈**：请求 ID 链路追踪、CORS、请求解压缩、超时（`http.timeout_secs`）与响应压缩控制（支持按路径排除，见 `etc/config.toml` 的 `http.timeout_excluded_paths` / `http.compression_excluded_paths`）
+- **中间件栈**：请求 ID 链路追踪、CORS、请求解压缩、超时（`http.timeout_secs`）、响应压缩控制（支持按路径排除）以及按路由限流（见 `etc/config.toml` 的 `http.timeout_excluded_paths` / `http.compression_excluded_paths`）
+- **GCRA 限流**：使用 `governor` 实现进程内 GCRA 限流，支持按路由分别配置客户端 IP 和已认证用户 ID 的配额
 - **结构化日志**：支持 JSON 输出与日志轮转，通过 `etc/config.toml` 配置
 - **微信小程序登录**：占位式登录流程，通过微信 code 与 `openid` 映射到已有用户
 - **邮箱绑定**：带验证码生成的占位式邮箱绑定流程
@@ -73,6 +74,23 @@ migrations/        # SQLx 数据库迁移脚本
 | `GET` | `/user/random` | 创建并返回一个随机 `UserInfo` |
 | `POST` | `/user/email/pre` | 生成并存储邮箱绑定验证码 |
 | `POST` | `/user/email` | 使用验证码绑定邮箱 |
+
+## 限流
+
+项目通过 [`governor`](https://github.com/boinkor-net/governor) 使用 GCRA 算法实现限流。每个 route 都可以拥有独立的限流器和配额。超过配额的请求会返回 `429 Too Many Requests`，并使用项目统一的错误响应格式。
+
+需要登录的 route 使用规范化后的请求路径和 `Claims.user_id` 生成限流 key。健康检查则使用客户端 IP 单独限流。当前各 route 的配额如下：
+
+| 路由 | Key | 配额 |
+| ---- | --- | ---- |
+| `/health` | 客户端 IP + path | 10 秒 2 次 |
+| `/user/{id}` | 用户 ID + path | 5 秒 2 次 |
+| `/user/email` | 用户 ID + path | 10 秒 3 次 |
+| `/user/email/pre` | 用户 ID + path | 10 秒 2 次 |
+| `/user/random` | 用户 ID + path | 5 秒 2 次 |
+| `/foo` | 用户 ID + path | 5 秒 2 次 |
+
+当前限流状态保存在进程内存中，适合单实例 API 部署。若服务水平扩展到多个实例，需要接入 Redis 等共享后端，才能让所有实例共享同一份配额。
 
 ## 开发指南
 
@@ -150,6 +168,7 @@ cargo build --release
 - **服务**：在 `src/services/` 中实现业务逻辑
 - **仓储**：在 `src/repos/` 中定义数据访问 trait，在 `src/data/` 中提供实现
 - **路由**：在 `src/routers/` 中注册新路由
+- **限流**：在 `src/routers/` 中使用 `RateLimitLayer::with_quota` 或 `RateLimitLayer::with_login_quota` 配置 route 级别的限流
 
 ### 添加新功能
 
@@ -176,6 +195,7 @@ cargo run -- --conf etc/config.toml
 - `[redis]` — Redis 地址与连接池配置
 - `[wechat]` — 微信小程序 `appid` 与 `secret`
 - `[jwt]` — JWT 签名密钥 `secret` 与令牌有效期 `expiration_secs`；`secret` 必须配置且不能为空
+- 限流配置 — 当前 route 级别的限流规则配置在 `src/routers/mod.rs` 中，暂不从 TOML 加载
 
 `.env` 文件供 `sqlx-cli` 和 SQLx 编译期查询检查使用（`DATABASE_URL=mysql://root:123456@localhost:3306/axum_best`）。
 

@@ -16,7 +16,8 @@ axum-best is a Rust web project template built on [Axum](https://github.com/toki
 - **MySQL + SQLx**: Type-safe database operations with compile-time checked queries; offline query metadata is committed under `.sqlx`
 - **Redis Caching**: Async connection pooling via `bb8-redis` (tokio-native, r2d2-style API) over the `redis` crate for caching and session-like storage
 - **Request Validation**: Input validation with `validator` and `axum-valid`
-- **Middleware Stack**: Request-ID tracing, CORS, request decompression, timeout (`http.timeout_secs`) and response-compression handling with per-path exclusions (see `http.timeout_excluded_paths` / `http.compression_excluded_paths` in `etc/config.toml`)
+- **Middleware Stack**: Request-ID tracing, CORS, request decompression, timeout (`http.timeout_secs`), response compression with per-path exclusions, and route-level rate limiting (see `http.timeout_excluded_paths` / `http.compression_excluded_paths` in `etc/config.toml`)
+- **GCRA Rate Limiting**: In-process GCRA limiting with `governor`, supporting independent per-route quotas for client IPs and authenticated user IDs
 - **Structured Logging**: JSON log output with rotation, configurable via `etc/config.toml`
 - **WeChat Mini-Program Login**: Placeholder login flow that maps a WeChat code to an existing user by `openid`
 - **Email Binding**: Placeholder email-binding workflow with validation code generation
@@ -72,6 +73,23 @@ Dependencies point one way: `handlers → services → repos (traits) ← data (
 | `GET` | `/user/random` | Create and return a random `UserInfo` |
 | `POST` | `/user/email/pre` | Generate and store an email binding validation code |
 | `POST` | `/user/email` | Bind an email address using the validation code |
+
+## Rate Limiting
+
+Rate limiting is implemented with the GCRA algorithm through [`governor`](https://github.com/boinkor-net/governor). Each route can have its own limiter and quota. Requests rejected by a limiter receive `429 Too Many Requests` using the application's standard error response.
+
+Authenticated routes use a key containing the normalized route path and `Claims.user_id`. The health check uses the client IP and is limited separately. The current route quotas are:
+
+| Route | Key | Quota |
+| ----- | --- | ----- |
+| `/health` | Client IP + path | 2 requests per 10 seconds |
+| `/user/{id}` | User ID + path | 2 requests per 5 seconds |
+| `/user/email` | User ID + path | 3 requests per 10 seconds |
+| `/user/email/pre` | User ID + path | 2 requests per 10 seconds |
+| `/user/random` | User ID + path | 2 requests per 5 seconds |
+| `/foo` | User ID + path | 2 requests per 5 seconds |
+
+The current implementation stores limiter state in process memory. It is suitable for a single API instance; horizontally scaled deployments need a shared backend, such as Redis, to enforce one quota across all instances.
 
 ## Development Guide
 
@@ -146,6 +164,7 @@ cargo build --release
 - **Services**: Implement business logic in `src/services/`
 - **Repositories**: Define data access traits in `src/repos/`, implement them in `src/data/`
 - **Routes**: Register new routes in `src/routers/`
+- **Rate Limits**: Configure route-level quotas in `src/routers/` with `RateLimitLayer::with_quota` or `RateLimitLayer::with_login_quota`
 
 ### Adding New Features
 
@@ -171,6 +190,7 @@ Key sections in `etc/config.toml`:
 - `[mysql]` — DSN, connection pool size, slow query thresholds
 - `[redis]` — Redis URL and pool settings
 - `[wechat]` — WeChat mini-program `appid` and `secret`
+- Rate limits — route-level quotas are currently configured in `src/routers/mod.rs`; they are not loaded from TOML
 
 The `.env` file is used by `sqlx-cli` and the SQLx compile-time query checker (`DATABASE_URL=mysql://root:123456@localhost:3306/axum_best`).
 
