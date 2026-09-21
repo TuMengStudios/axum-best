@@ -40,6 +40,20 @@ impl RateLimitLayer {
     /// For example, `period = 1 second`, `requests = 10`, and `burst = 10`
     /// allows an average of 10 requests per second with an initial burst of 10.
     pub fn with_quota(period: Duration, requests: u32, burst: u32) -> Self {
+        Self::new(period, requests, burst, Self::ip_key)
+    }
+
+    /// Creates a rate-limit layer keyed by the authenticated user's ID and path.
+    pub fn with_login_quota(period: Duration, requests: u32, burst: u32) -> Self {
+        Self::new(period, requests, burst, Self::user_key)
+    }
+
+    fn new(
+        period: Duration,
+        requests: u32,
+        burst: u32,
+        key_extractor: impl Fn(&Request<Body>) -> String + Send + Sync + 'static,
+    ) -> Self {
         assert!(!period.is_zero(), "rate limit period must be greater than zero");
         let requests =
             NonZeroU32::new(requests).expect("rate limit requests must be greater than zero");
@@ -52,23 +66,8 @@ impl RateLimitLayer {
             .allow_burst(burst);
         Self {
             limiter: Arc::new(RateLimiter::keyed(quota)),
-            key_extractor: Arc::new(|request| {
-                let path = request.uri().path().replace('/', "_");
-                request
-                    .extensions()
-                    .get::<std::net::SocketAddr>()
-                    .map(|addr| {
-                        let ip = addr.ip().to_string().replace('.', "_");
-                        format!("rate_ip_{}_{}", ip, path)
-                    })
-                    .unwrap_or_else(|| format!("rate_ip_unknown_{}", path))
-            }),
+            key_extractor: Arc::new(key_extractor),
         }
-    }
-
-    /// Creates a rate-limit layer keyed by the authenticated user's ID and path.
-    pub fn with_login_quota(period: Duration, requests: u32, burst: u32) -> Self {
-        Self::with_quota(period, requests, burst).with_key_extractor(Self::user_key)
     }
 
     fn user_key(request: &Request<Body>) -> String {
@@ -81,12 +80,16 @@ impl RateLimitLayer {
         format!("rate_user_{}_{}", path, user_id)
     }
 
-    pub fn with_key_extractor(
-        mut self,
-        key_extractor: impl Fn(&Request<Body>) -> String + Send + Sync + 'static,
-    ) -> Self {
-        self.key_extractor = Arc::new(key_extractor);
-        self
+    fn ip_key(request: &Request<Body>) -> String {
+        let path = request.uri().path().replace('/', "_");
+        request
+            .extensions()
+            .get::<std::net::SocketAddr>()
+            .map(|addr| {
+                let ip = addr.ip().to_string().replace('.', "_");
+                format!("rate_ip_{}_{}", ip, path)
+            })
+            .unwrap_or_else(|| format!("rate_ip_unknown_{}", path))
     }
 }
 
