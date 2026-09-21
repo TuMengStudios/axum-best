@@ -12,6 +12,10 @@ lazy_static! {
     pub static ref ErrBadRequest: AppError =
         AppError::new(StatusCode::BAD_REQUEST, 14000, "Bad Request Params");
 
+    /// Too many requests - the request exceeded the configured rate limit
+    pub static ref ErrTooManyRequests: AppError =
+        AppError::new(StatusCode::TOO_MANY_REQUESTS, 42900, "Too Many Requests");
+
     /// Request timeout - the request exceeded its time budget (returned by
     /// the timeout middleware as a bare 408; also usable by handlers that
     /// enforce their own budgets)
