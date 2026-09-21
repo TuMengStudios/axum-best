@@ -92,6 +92,11 @@ timeout_excluded_paths = []
 # Defaults to an empty list (compress everything compressible).
 compression_excluded_paths = []
 
+# Origins allowed to make cross-origin requests.
+# Use an explicit list for credentialed browser requests. Set to ["*"] only
+# when every origin is trusted; wildcard mode does not allow credentials.
+cors_allowed_origins = ["http://localhost:3000"]
+
 
 [jwt]
 # HMAC secret used to sign and validate bearer tokens. This value is required.
