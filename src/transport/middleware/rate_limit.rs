@@ -36,8 +36,8 @@ impl RateLimitLayer {
                 request
                     .extensions()
                     .get::<std::net::SocketAddr>()
-                    .map(ToString::to_string)
-                    .unwrap_or_else(|| "unknown".to_string())
+                    .map(|addr| format!("rate_ip_{}", addr.ip()))
+                    .unwrap_or_else(|| "rate_ip_unknown".to_string())
             }),
         }
     }

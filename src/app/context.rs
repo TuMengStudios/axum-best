@@ -1,3 +1,4 @@
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::Router;
@@ -107,9 +108,14 @@ impl AppContext {
         info!("Server started successfully");
         println!("Server started successfully");
 
-        axum::serve(listener, self.router.clone())
-            .with_graceful_shutdown(shutdown_signal())
-            .await?;
+        axum::serve(
+            listener,
+            self.router
+                .clone()
+                .into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
 
         self.close_pools().await;
         info!("Server stopped");
