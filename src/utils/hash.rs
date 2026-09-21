@@ -1,0 +1,138 @@
+use std::fs::File;
+use std::io::BufReader;
+use std::io::Read;
+use std::path::Path;
+
+use anyhow::Result;
+use digest::Digest;
+use md5::Md5;
+use sha1::Sha1;
+use sha2::Sha256;
+use sha2::Sha512;
+
+#[derive(Debug, Clone, Copy)]
+pub enum HashAlgorithm {
+    MD5,
+    SHA1,
+    SHA256,
+    SHA512,
+}
+
+pub enum Hasher {
+    MD5(Md5),
+    SHA1(Sha1),
+    SHA256(Sha256),
+    SHA512(Sha512),
+}
+
+impl Hasher {
+    pub fn update(&mut self, data: &[u8]) {
+        match self {
+            Hasher::MD5(hasher) => hasher.update(data),
+            Hasher::SHA1(hasher) => hasher.update(data),
+            Hasher::SHA256(hasher) => hasher.update(data),
+            Hasher::SHA512(hasher) => hasher.update(data),
+        }
+    }
+
+    pub fn finalize(self) -> String {
+        match self {
+            Hasher::MD5(hasher) => format!("{:x}", hasher.finalize()),
+            Hasher::SHA1(hasher) => format!("{:x}", hasher.finalize()),
+            Hasher::SHA256(hasher) => format!("{:x}", hasher.finalize()),
+            Hasher::SHA512(hasher) => format!("{:x}", hasher.finalize()),
+        }
+    }
+}
+
+impl HashAlgorithm {
+    pub fn hasher(&self) -> Hasher {
+        match self {
+            HashAlgorithm::MD5 => Hasher::MD5(Md5::new()),
+            HashAlgorithm::SHA1 => Hasher::SHA1(Sha1::new()),
+            HashAlgorithm::SHA256 => Hasher::SHA256(Sha256::new()),
+            HashAlgorithm::SHA512 => Hasher::SHA512(Sha512::new()),
+        }
+    }
+}
+
+/// Computes the hash digest of a file
+pub fn file_digest(path: &Path, algorithm: HashAlgorithm) -> Result<String> {
+    let file = File::open(path)?;
+    let mut reader = BufReader::new(file);
+
+    let mut buffer = [0; 8192]; // 8 KB buffer
+
+    match algorithm {
+        HashAlgorithm::MD5 => {
+            let mut hasher = Md5::new();
+            copy_to_hasher(&mut reader, &mut hasher, &mut buffer)?;
+            Ok(format!("{:x}", hasher.finalize()))
+        }
+        HashAlgorithm::SHA1 => {
+            let mut hasher = Sha1::new();
+            copy_to_hasher(&mut reader, &mut hasher, &mut buffer)?;
+            Ok(format!("{:x}", hasher.finalize()))
+        }
+        HashAlgorithm::SHA256 => {
+            let mut hasher = Sha256::new();
+            copy_to_hasher(&mut reader, &mut hasher, &mut buffer)?;
+            Ok(format!("{:x}", hasher.finalize()))
+        }
+        HashAlgorithm::SHA512 => {
+            let mut hasher = Sha512::new();
+            copy_to_hasher(&mut reader, &mut hasher, &mut buffer)?;
+            Ok(format!("{:x}", hasher.finalize()))
+        }
+    }
+}
+
+/// Generic hash computation helper
+fn copy_to_hasher<R, H>(reader: &mut R, hasher: &mut H, buffer: &mut [u8]) -> Result<()>
+where
+    R: Read,
+    H: Digest,
+{
+    loop {
+        let bytes_read = reader.read(buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_file_digest() -> Result<()> {
+        use manifest_dir_macros::file_path;
+        let path = Path::new(file_path!("tests/index.txt"));
+        let digest = file_digest(path, HashAlgorithm::SHA1)?;
+        println!("sha1:{}", digest);
+        assert_eq!(digest, "65aed31e2af181f131e7091301b97d0b8379bdf3");
+        let digest = file_digest(path, HashAlgorithm::SHA512)?;
+        println!("sha256:{}", digest);
+        assert_eq!(
+            digest,
+            "d074479576ba7b335c9178bfdd85a9f0f32084faa823b83922d638c3fe3dcca7ac836783fbf6f14cf253c915b46ce7d9974814c28063cad74e987131652dcf7f"
+        );
+        let digest = file_digest(path, HashAlgorithm::MD5)?;
+        println!("md5:{}", digest);
+        assert_eq!(digest, "deab55458837fbe4ec2a6e61690fe998");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_hasher() {
+        let algorithm = HashAlgorithm::SHA256;
+        let mut hasher = algorithm.hasher();
+        hasher.update(b"hello world");
+        let result = hasher.finalize();
+        println!("hasher result: {}", result);
+        assert_eq!(result, "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");
+    }
+}
