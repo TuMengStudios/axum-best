@@ -1,7 +1,6 @@
 use serde::Deserialize;
 use smart_default::SmartDefault;
 use tokio::net::TcpListener;
-use tracing::info;
 
 /// HTTP server configuration
 ///
@@ -61,37 +60,30 @@ impl HttpConf {
     fn address(&self) -> String {
         format!("{}:{}", self.listen, self.port)
     }
-}
 
-impl HttpConf {
     /// Creates and binds a TCP listener using the configured address and port
     ///
     /// # Returns
     /// - `Ok(TcpListener)` if the listener was successfully created and bound
     /// - `Err(anyhow::Error)` if binding failed
     pub async fn build_listener(&self) -> anyhow::Result<TcpListener> {
-        println!("try to listen {:?}", self.address());
-        let listener = TcpListener::bind(self.address()).await?;
-        if self.address().starts_with("0.0.0.0") {
-            match local_ip_address::local_ip() {
-                Ok(ip) => {
-                    // Start HTTP server
-                    println!("Starting HTTP server on http://{}:{}", ip, self.port);
-                    info!("Starting HTTP server on http://{}:{}", ip, self.port);
-                }
-                Err(_err) => {
-                    // Start HTTP server
-                    println!("Starting HTTP server on http://{}", self.address(),);
-                    info!("Starting HTTP server on http://{}", self.address(),);
-                }
-            }
-        } else {
-            // Start HTTP server
-            println!("Starting HTTP server on http://{}", self.address(),);
-            tracing::info!("Starting HTTP server on http://{}", self.address(),);
-        }
+        let address = self.address();
+        println!("try to listen {address}");
+        let listener = match TcpListener::bind(&address).await {
+            Ok(listener) => listener,
+            Err(err) => return Err(anyhow::anyhow!("listen {address} failed: {err}")),
+        };
 
-        println!("listen {} success", self.address());
+        let display_addr = if self.listen == "0.0.0.0" {
+            local_ip_address::local_ip()
+                .map(|ip| format!("{ip}:{}", self.port))
+                .unwrap_or(address)
+        } else {
+            address
+        };
+        println!("Starting HTTP server on http://{display_addr}");
+        println!("listen {display_addr} success");
+
         Ok(listener)
     }
 }
