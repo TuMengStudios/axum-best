@@ -4,6 +4,7 @@ use std::num::NonZeroU32;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
+use std::time::Duration;
 
 use axum::body::Body;
 use axum::http::Request;
@@ -25,19 +26,40 @@ pub struct RateLimitLayer {
 }
 
 impl RateLimitLayer {
-    pub fn per_second(requests: u32, burst: u32) -> Self {
-        let requests = NonZeroU32::new(requests)
-            .expect("rate limit requests per second must be greater than zero");
+    /// Creates a rate-limit layer with a quota over the given period.
+    ///
+    /// # Arguments
+    ///
+    /// * `period` - The time window used to calculate the average request rate.
+    /// * `requests` - The number of requests allowed during `period`.
+    /// * `burst` - The maximum number of requests that can pass in a short burst
+    ///   before the average rate limit is enforced.
+    ///
+    /// For example, `period = 1 second`, `requests = 10`, and `burst = 10`
+    /// allows an average of 10 requests per second with an initial burst of 10.
+    pub fn with_quota(period: Duration, requests: u32, burst: u32) -> Self {
+        assert!(!period.is_zero(), "rate limit period must be greater than zero");
+        let requests =
+            NonZeroU32::new(requests).expect("rate limit requests must be greater than zero");
         let burst = NonZeroU32::new(burst).expect("rate limit burst must be greater than zero");
-        let quota = Quota::per_second(requests).allow_burst(burst);
+        let interval = period
+            .checked_div(requests.get())
+            .expect("rate limit period is too short for the request count");
+        let quota = Quota::with_period(interval)
+            .expect("rate limit period is too short for the request count")
+            .allow_burst(burst);
         Self {
             limiter: Arc::new(RateLimiter::keyed(quota)),
             key_extractor: Arc::new(|request| {
+                let path = request.uri().path().replace('/', "_");
                 request
                     .extensions()
                     .get::<std::net::SocketAddr>()
-                    .map(|addr| format!("rate_ip_{}", addr.ip()))
-                    .unwrap_or_else(|| "rate_ip_unknown".to_string())
+                    .map(|addr| {
+                        let ip = addr.ip().to_string().replace('.', "_");
+                        format!("rate_ip_{}_{}", ip, path)
+                    })
+                    .unwrap_or_else(|| format!("rate_ip_unknown_{}", path))
             }),
         }
     }
