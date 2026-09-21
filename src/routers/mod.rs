@@ -4,6 +4,7 @@ use axum::Router;
 use axum::middleware;
 use axum::routing::get;
 use axum::routing::post;
+use axum_prometheus::PrometheusMetricLayer;
 use tower::ServiceBuilder;
 use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::trace;
@@ -85,7 +86,7 @@ pub fn app_routers(state: AppState) -> Router {
         )
         .route_layer(middleware::from_fn_with_state(state.clone(), auth::auth));
 
-    Router::new()
+    let router = Router::new()
         .merge(protected_routes)
         .route("/user/wx/login", post(userHandler::wechat_login))
         .route(
@@ -105,6 +106,21 @@ pub fn app_routers(state: AppState) -> Router {
                 .with_excluded_prefixes(state.cfg.http.timeout_excluded_paths.iter().cloned()),
             timeout::middleware,
         ))
-        .layer(cors::layer(&state.cfg.http.cors_allowed_origins))
-        .with_state(state)
+        .layer(cors::layer(&state.cfg.http.cors_allowed_origins));
+
+    let router = match state.cfg.metrics.path() {
+        Some(path) => {
+            let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
+            router
+                .route(
+                    path,
+                    get(move || async move { metric_handle.render() })
+                        .layer(RateLimitLayer::with_quota(Duration::from_secs(10), 5, 5)),
+                )
+                .layer(prometheus_layer)
+        }
+        None => router,
+    };
+
+    router.with_state(state)
 }
