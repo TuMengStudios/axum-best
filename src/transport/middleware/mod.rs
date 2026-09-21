@@ -11,4 +11,5 @@ pub mod compression;
 pub mod cors;
 pub mod otel;
 pub mod prefix;
+pub mod rate_limit;
 pub mod timeout;

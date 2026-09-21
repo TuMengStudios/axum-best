@@ -18,6 +18,7 @@ use crate::transport::middleware::auth;
 use crate::transport::middleware::compression;
 use crate::transport::middleware::cors;
 use crate::transport::middleware::otel;
+use crate::transport::middleware::rate_limit::RateLimitLayer;
 use crate::transport::middleware::timeout;
 
 async fn not_implemented() -> crate::core::Result<u8> {
@@ -50,13 +51,25 @@ pub fn app_routers(state: AppState) -> Router {
         .route("/user/email", post(userHandler::bind_email))
         .route("/user/email/pre", post(userHandler::pre_bind_email))
         .route("/user/random", get(userHandler::random_user))
-        .route("/foo", get(foo::foo))
+        .route(
+            "/foo",
+            get(foo::foo).layer(RateLimitLayer::per_second(
+                nonzero_ext::nonzero!(10u32),
+                nonzero_ext::nonzero!(10u32),
+            )),
+        )
         .route_layer(middleware::from_fn_with_state(state.clone(), auth::auth));
 
     Router::new()
         .merge(protected_routes)
         .route("/user/wx/login", post(userHandler::wechat_login))
-        .route("/health", get(health::health))
+        .route(
+            "/health",
+            get(health::health).layer(RateLimitLayer::per_second(
+                nonzero_ext::nonzero!(2u32),
+                nonzero_ext::nonzero!(2u32),
+            )),
+        )
         .fallback(not_implemented)
         .layer(layer)
         .layer(middleware::from_fn(otel::middleware))
