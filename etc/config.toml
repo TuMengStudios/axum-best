@@ -54,6 +54,13 @@ time_format = "%Y-%m-%d %H:%M:%S%.6f"
 format = "json"
 
 
+[otel]
+# OTLP gRPC exporter endpoint. Leave unset to keep traces in the local tracing output.
+# endpoint = "http://localhost:4317"
+# OpenTelemetry tracer name. Leave unset or empty to use "axum-best".
+tracer_name = "my-app"
+
+
 [http]
 # HTTP server configuration section
 # -----------------------------------------------------------------------------

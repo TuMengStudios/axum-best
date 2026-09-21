@@ -6,6 +6,7 @@ use crate::data::cache::RedisConf;
 use crate::data::mysql::MysqlConf;
 use crate::data::wechat::WeChatConf;
 use crate::logx::LogConfig;
+use crate::observability::OpenTelemetryConfig;
 use crate::transport::http::HttpConf;
 
 /// Application configuration structure
@@ -21,6 +22,10 @@ pub struct AppConf {
     /// Contains settings for log levels, rotation, file output, and formatting.
     /// Controls how application logs are generated and stored.
     pub log: LogConfig,
+
+    /// OpenTelemetry configuration. Without an endpoint, traces remain in local logs.
+    #[serde(default)]
+    pub otel: OpenTelemetryConfig,
 
     /// HTTP server configuration section
     ///
@@ -67,5 +72,18 @@ impl AppConf {
             .map_err(|err| anyhow::anyhow!("open file {} error {:?}", path, err))?;
 
         toml::from_str(&content).map_err(|err| anyhow::anyhow!("parser file error {:?}", err))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AppConf;
+
+    #[test]
+    fn default_config_keeps_otlp_export_disabled() {
+        let config: AppConf = toml::from_str(include_str!("../../etc/config.toml"))
+            .expect("default configuration should parse");
+
+        assert!(config.otel.endpoint.is_none());
     }
 }
