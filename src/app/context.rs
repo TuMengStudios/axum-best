@@ -81,13 +81,14 @@ impl AppContext {
         let app_state = AppState::new(cfg.clone(), user_service, FooService);
         let router = routers::app_routers(app_state);
 
-        Ok(AppContext {
+        let app = AppContext {
             cfg,
             router,
             db_pool: db_conn,
             otel_guard,
             work_guard: guard,
-        })
+        };
+        Ok(app)
     }
 
     /// Binds the HTTP listener and serves requests until the server exits
