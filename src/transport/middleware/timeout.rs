@@ -52,7 +52,7 @@ impl TimeoutConfig {
 }
 
 /// The middleware itself; plug in via
-/// [`axum::middleware::from_fn_with_state`](axum::middleware::from_fn_with_state)
+/// [`axum::middleware::from_fn_with_state`]
 pub async fn middleware(State(config): State<TimeoutConfig>, req: Request, next: Next) -> Response {
     let path = req.uri().path().to_owned();
 
