@@ -46,7 +46,7 @@ impl CompressionConfig {
 }
 
 /// The middleware itself; plug in via
-/// [`axum::middleware::from_fn_with_state`](axum::middleware::from_fn_with_state)
+/// [`axum::middleware::from_fn_with_state`]
 pub async fn middleware(
     State(config): State<CompressionConfig>,
     req: Request,
