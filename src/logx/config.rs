@@ -11,7 +11,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::util::SubscriberInitExt;
 
-const GIT_COMMIT_ID: &str = git_version::git_version!(args = ["--always"], fallback = "");
+const GIT_COMMIT_ID: &str = gitver::git_version!(fallback = "");
 
 struct CommitJson<T> {
     inner: Format<Json, T>,
