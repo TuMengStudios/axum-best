@@ -25,7 +25,10 @@ pub struct RateLimitLayer {
 }
 
 impl RateLimitLayer {
-    pub fn per_second(requests: NonZeroU32, burst: NonZeroU32) -> Self {
+    pub fn per_second(requests: u32, burst: u32) -> Self {
+        let requests = NonZeroU32::new(requests)
+            .expect("rate limit requests per second must be greater than zero");
+        let burst = NonZeroU32::new(burst).expect("rate limit burst must be greater than zero");
         let quota = Quota::per_second(requests).allow_burst(burst);
         Self {
             limiter: Arc::new(RateLimiter::keyed(quota)),
