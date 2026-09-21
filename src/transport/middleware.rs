@@ -10,6 +10,7 @@
 pub mod auth;
 pub mod compression;
 pub mod cors;
+pub mod otel;
 pub mod prefix;
 pub mod request_id;
 pub mod timeout;

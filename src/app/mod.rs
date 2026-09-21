@@ -11,6 +11,7 @@ use crate::core::state::AppState;
 use crate::data::kv::RedisKvStore;
 use crate::data::user::MySqlUserRepo;
 use crate::data::wechat::WechatApiRepo;
+use crate::observability::{self, OpenTelemetryGuard};
 use crate::routers;
 use crate::services::foo::FooService;
 use crate::services::user::UserService;
@@ -38,11 +39,13 @@ pub struct AppContext {
     cfg: Arc<AppConf>,
     router: Router,
     db_pool: MySqlPool,
+    /// Keeps the OTLP exporter alive until the application shuts down.
+    /// Declared before `work_guard` so exporter shutdown can still write diagnostics.
+    #[allow(dead_code)]
+    otel_guard: OpenTelemetryGuard,
     /// Guard for the non-blocking log worker; must be kept alive for the
     /// lifetime of the server so log flushing on drop happens correctly.
-    /// Declared last on purpose: fields drop in order, so the router (with
-    /// the services and the redis pool inside) is gone before logs are
-    /// flushed.
+    /// Declared last so OpenTelemetry flushes before the log worker stops.
     #[allow(dead_code)]
     work_guard: WorkerGuard,
 }
@@ -51,7 +54,8 @@ impl AppContext {
     /// Assembles logging, connection pools, repositories, services and the
     /// HTTP router into one context
     pub async fn new(cfg: AppConf) -> anyhow::Result<AppContext> {
-        let guard = cfg.log.init_log()?;
+        let otel_guard = observability::init_open_telemetry(env!("CARGO_PKG_NAME"), &cfg.otel)?;
+        let guard = cfg.log.init_log(otel_guard.tracer())?;
         let cfg = Arc::new(cfg);
 
         // build db connect pool
@@ -78,10 +82,11 @@ impl AppContext {
         let router = routers::app_routers(app_state);
 
         Ok(AppContext {
-            work_guard: guard,
             cfg,
             router,
             db_pool: db_conn,
+            otel_guard,
+            work_guard: guard,
         })
     }
 

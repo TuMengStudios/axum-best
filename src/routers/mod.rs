@@ -18,6 +18,7 @@ use crate::handlers::user as userHandler;
 use crate::transport::middleware::auth;
 use crate::transport::middleware::compression;
 use crate::transport::middleware::cors;
+use crate::transport::middleware::otel;
 use crate::transport::middleware::request_id::inject_request_id;
 use crate::transport::middleware::request_id::make_request_span;
 use crate::transport::middleware::timeout;
@@ -46,6 +47,7 @@ pub fn app_routers(state: AppState) -> Router {
     //   CORS
     //   timeout               time budget (covers compression work)
     //   compression           negotiates from Accept-Encoding
+    //   OpenTelemetry         adds the trace id response header before compression
     //   request decompression (from `layer`'s ServiceBuilder)
     //   tracing
     //   routes
@@ -63,6 +65,7 @@ pub fn app_routers(state: AppState) -> Router {
         .route("/health", get(health::health))
         .fallback(not_implemented)
         .layer(layer)
+        .layer(middleware::from_fn(otel::middleware))
         .layer(middleware::from_fn_with_state(
             compression::CompressionConfig::new().with_excluded_prefixes(
                 state.cfg.http.compression_excluded_paths.iter().cloned(),
