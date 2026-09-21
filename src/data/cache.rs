@@ -17,7 +17,7 @@ pub type RedisPool = bb8::Pool<RedisConnectionManager>;
 #[derive(Derivative, Deserialize)]
 #[derivative(Debug)]
 pub struct RedisConf {
-    /// Redis connection URL in format: redis://[username:password@]host[:port][/database]
+    /// Redis connection URL in format: `redis://[username:password@]host[:port][/database]`
     /// Example: redis://127.0.0.1:6379/0
     #[derivative(Debug = "ignore")]
     pub url: String,
