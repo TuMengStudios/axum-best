@@ -6,7 +6,7 @@ init:
 	cargo install cargo-nextest@0.9.146 --locked
 
 build:
-	cargo build --verbose
+	cargo build --release --verbose
 
 test:
 	cargo nextest run --all-features --verbose
