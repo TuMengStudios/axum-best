@@ -1,0 +1,45 @@
+# Rust 构建产物
+/target
+/logs
+.cargo-**/**
+target-**/**
+
+# Git 元数据可以排除，但 .git/ 必须保留——gitver proc-macro 需要读 .git/logs/HEAD 并跑 git log
+.gitignore
+.gitattributes
+
+# IDE / 编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# CI / 仓库配置（与构建无关）
+.github/
+.pre-commit-config.yaml
+.commitlint.yaml
+.editorconfig
+rustfmt.toml
+deny.toml
+
+# Agent / 开发辅助
+.agents/
+
+# 文档（构建不需要）
+*.md
+LICENSE*
+README*
+dev.md
+
+# 验证用的临时 target 目录
+.cargo-target-verify*/
+
+# 本地 axum 子目录（见 .gitignore）
+axum/*
+
+# Docker 自身
+Dockerfile
+.dockerignore
