@@ -27,7 +27,7 @@ impl From<tokio::sync::AcquireError> for TaskError {
 
 /// A bounded pool for Tokio tasks.
 #[derive(Debug, Clone)]
-pub struct Pool {
+pub struct WorkerPool {
     name: Arc<String>,
     spawn_timeout: Duration,
     limiter: Arc<Semaphore>,
@@ -37,7 +37,7 @@ pub struct Pool {
 /// A point-in-time snapshot of a pool's work status.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorkStatus {
-    /// Pool name.
+    /// WorkerPool name.
     pub name: String,
     /// Total number of concurrent slots.
     pub capacity: usize,
@@ -47,7 +47,7 @@ pub struct WorkStatus {
     pub busy_permits: usize,
 }
 
-impl Pool {
+impl WorkerPool {
     /// Creates a pool with `capacity` concurrent slots.
     ///
     /// `spawn_timeout` bounds how long a submission waits for a free slot;
@@ -110,7 +110,7 @@ impl Pool {
 
     /// Submits a fire-and-forget task and returns as soon as it is admitted.
     ///
-    /// Unlike [`Pool::submit_task`], the task runs detached on the Tokio
+    /// Unlike [`WorkerPool::submit_task`], the task runs detached on the Tokio
     /// runtime: the caller does not wait for completion and gets no result
     /// back. The future may produce any output; it is awaited and discarded.
     /// All errors are swallowed and only reported through `tracing`.
@@ -166,17 +166,17 @@ mod tests {
 
     use tokio::time::sleep;
 
-    use super::{Pool, TaskError, WorkStatus};
+    use super::{TaskError, WorkStatus, WorkerPool};
 
     #[test]
     fn falls_back_to_default_name() {
-        assert_eq!(Pool::new(1, Duration::ZERO, "").status().name, "worker");
-        assert_eq!(Pool::new(1, Duration::ZERO, "bg").status().name, "bg");
+        assert_eq!(WorkerPool::new(1, Duration::ZERO, "").status().name, "worker");
+        assert_eq!(WorkerPool::new(1, Duration::ZERO, "bg").status().name, "bg");
     }
 
     #[test]
     fn reports_pool_status() {
-        let status = Pool::new(2, Duration::ZERO, "test").status();
+        let status = WorkerPool::new(2, Duration::ZERO, "test").status();
 
         assert_eq!(
             status,
@@ -191,7 +191,7 @@ mod tests {
 
     #[tokio::test]
     async fn runs_bounded_tasks() {
-        let pool = Pool::new(2, Duration::ZERO, "test");
+        let pool = WorkerPool::new(2, Duration::ZERO, "test");
         let counter = Arc::new(AtomicUsize::new(0));
 
         for _ in 0..2 {
@@ -208,7 +208,7 @@ mod tests {
 
     #[tokio::test]
     async fn reports_spawn_timeout() {
-        let pool = Pool::new(1, Duration::from_millis(10), "test");
+        let pool = WorkerPool::new(1, Duration::from_millis(10), "test");
         let pool_clone = pool.clone();
         let first = tokio::spawn(async move {
             pool_clone
@@ -230,7 +230,7 @@ mod tests {
 
     #[tokio::test]
     async fn reports_run_timeout() {
-        let pool = Pool::new(1, Duration::ZERO, "test");
+        let pool = WorkerPool::new(1, Duration::ZERO, "test");
         let result = pool
             .submit_task(Duration::from_millis(10), async {
                 sleep(Duration::from_millis(50)).await;
@@ -242,7 +242,7 @@ mod tests {
 
     #[tokio::test]
     async fn returns_task_output() {
-        let pool = Pool::new(2, Duration::ZERO, "test");
+        let pool = WorkerPool::new(2, Duration::ZERO, "test");
         let output = pool
             .submit_task(Duration::ZERO, async { 1 + 1 })
             .await
@@ -253,7 +253,7 @@ mod tests {
 
     #[tokio::test]
     async fn spawns_detached_tasks() {
-        let pool = Pool::new(2, Duration::ZERO, "test");
+        let pool = WorkerPool::new(2, Duration::ZERO, "test");
         let counter = Arc::new(AtomicUsize::new(0));
         let task_counter = Arc::clone(&counter);
 
@@ -268,7 +268,7 @@ mod tests {
 
     #[tokio::test]
     async fn spawn_task_discards_output() {
-        let pool = Pool::new(2, Duration::ZERO, "test");
+        let pool = WorkerPool::new(2, Duration::ZERO, "test");
 
         pool.spawn_task(Duration::ZERO, async { 1 + 1 }).await;
 
@@ -277,7 +277,7 @@ mod tests {
 
     #[tokio::test]
     async fn spawn_task_swallows_spawn_timeout() {
-        let pool = Pool::new(1, Duration::from_millis(10), "test");
+        let pool = WorkerPool::new(1, Duration::from_millis(10), "test");
         let pool_clone = pool.clone();
         let first = tokio::spawn(async move {
             pool_clone
@@ -294,7 +294,7 @@ mod tests {
 
     #[tokio::test]
     async fn spawn_task_aborts_on_run_timeout() {
-        let pool = Pool::new(2, Duration::ZERO, "test");
+        let pool = WorkerPool::new(2, Duration::ZERO, "test");
         let counter = Arc::new(AtomicUsize::new(0));
         let task_counter = Arc::clone(&counter);
 

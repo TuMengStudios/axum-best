@@ -14,7 +14,7 @@ task's execution time; `Duration::ZERO` disables the execution timeout:
 | `spawn_task` | Calls `tokio::spawn` after acquiring a slot and returns immediately | None; errors are reported through `tracing` |
 
 `timeout` does not limit the time spent waiting for a pool slot. Slot wait time
-is controlled by `Pool::new`'s `spawn_timeout`. Both methods acquire a free slot
+is controlled by `WorkerPool::new`'s `spawn_timeout`. Both methods acquire a free slot
 before running the task:
 
 - `submit_task` returns `Err(TaskError::SpawnTimeout)` if no slot is acquired.
@@ -25,10 +25,10 @@ before running the task:
 
 ```rust
 use std::time::Duration;
-use noworkers::Pool;
+use noworkers::WorkerPool;
 
 async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    let pool = Pool::new(16, Duration::from_millis(100), "background");
+    let pool = WorkerPool::new(16, Duration::from_millis(100), "background");
 
     // Wait for the result with a 30-second execution timeout.
     let output = pool
@@ -50,7 +50,7 @@ async fn example() -> Result<(), Box<dyn std::error::Error>> {
 
 `TaskError` has the following variants:
 
-- `SpawnTimeout`: Waiting for a pool slot exceeded the `spawn_timeout` configured by `Pool::new`.
+- `SpawnTimeout`: Waiting for a pool slot exceeded the `spawn_timeout` configured by `WorkerPool::new`.
 - `RunTimeout`: Task execution exceeded the `timeout` passed to the submission method.
 - `SpawnSemaphoreAcquireError`: Acquiring a semaphore permit failed. This is only returned when the semaphore is explicitly closed; this crate never closes it during normal operation.
 
