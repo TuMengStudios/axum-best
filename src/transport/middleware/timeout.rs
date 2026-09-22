@@ -3,10 +3,11 @@
 //! Enforces a time budget on request handling by reusing
 //! [`tower_http::timeout::TimeoutLayer`], which answers a bare
 //! `408 Request Timeout` (empty body) when the budget elapses. Requests whose
-//! path matches one of the excluded prefixes skip the timeout entirely, for
+//! path matches one of the exclusions skip the timeout entirely, for
 //! long-running endpoints such as SSE streams, file uploads or reports.
-//! Matching is segment-aware: `/stream` excludes `/stream` and `/stream/1`,
-//! but not `/streaming`.
+//! Exclusions are segment-aware prefixes (`/stream` excludes `/stream` and
+//! `/stream/1`, but not `/streaming`), or `regex:`-prefixed patterns matched
+//! against the full path.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -20,31 +21,33 @@ use tower::Layer;
 use tower::ServiceExt;
 use tower_http::timeout::TimeoutLayer;
 
+use super::prefix::Exclusion;
+
 /// Configuration for the timeout middleware, used as the
 /// [`axum::middleware::from_fn_with_state`] state
 #[derive(Clone)]
 pub struct TimeoutConfig {
     duration: Duration,
-    excluded_prefixes: Arc<[String]>,
+    exclusions: Arc<[Exclusion]>,
 }
 
 impl TimeoutConfig {
     pub fn new(duration: Duration) -> TimeoutConfig {
         TimeoutConfig {
             duration,
-            excluded_prefixes: Arc::from([]),
+            exclusions: Arc::from([]),
         }
     }
 
-    /// Registers path prefixes that skip the timeout
-    pub fn with_excluded_prefixes<I, P>(mut self, prefixes: I) -> TimeoutConfig
+    /// Registers path exclusions that skip the timeout
+    pub fn with_excluded_prefixes<I, P>(mut self, exclusions: I) -> TimeoutConfig
     where
         I: IntoIterator<Item = P>,
         P: Into<String>,
     {
-        self.excluded_prefixes = prefixes
+        self.exclusions = exclusions
             .into_iter()
-            .map(Into::into)
+            .map(|entry| Exclusion::new(&entry.into()))
             .collect::<Vec<_>>()
             .into();
         self
@@ -56,7 +59,7 @@ impl TimeoutConfig {
 pub async fn middleware(State(config): State<TimeoutConfig>, req: Request, next: Next) -> Response {
     let path = req.uri().path().to_owned();
 
-    if super::prefix::is_excluded(&path, &config.excluded_prefixes) {
+    if super::prefix::is_excluded(&path, &config.exclusions) {
         return next.run(req).await;
     }
 

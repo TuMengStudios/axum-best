@@ -1,11 +1,12 @@
 //! Response compression middleware with per-path exclusions
 //!
 //! Reuses [`tower_http::compression::CompressionLayer`] per request: responses
-//! for excluded prefixes are served verbatim (no `Content-Encoding`), everything
+//! for excluded paths are served verbatim (no `Content-Encoding`), everything
 //! else is compressed according to the request's `Accept-Encoding`. Excluding
 //! is useful for endpoints that stream (SSE) or already emit compressed
-//! content. Matching is segment-aware: `/stream` excludes `/stream` and
-//! `/stream/1`, but not `/streaming`.
+//! content. Exclusions are segment-aware prefixes (`/stream` excludes
+//! `/stream` and `/stream/1`, but not `/streaming`), or `regex:`-prefixed
+//! patterns matched against the full path.
 
 use std::sync::Arc;
 
@@ -18,11 +19,13 @@ use tower::Layer;
 use tower::ServiceExt;
 use tower_http::compression::CompressionLayer;
 
+use super::prefix::Exclusion;
+
 /// Configuration for the compression middleware, used as the
 /// [`axum::middleware::from_fn_with_state`] state
 #[derive(Clone, Default)]
 pub struct CompressionConfig {
-    excluded_prefixes: Arc<[String]>,
+    exclusions: Arc<[Exclusion]>,
 }
 
 impl CompressionConfig {
@@ -30,15 +33,15 @@ impl CompressionConfig {
         CompressionConfig::default()
     }
 
-    /// Registers path prefixes whose responses skip compression
-    pub fn with_excluded_prefixes<I, P>(mut self, prefixes: I) -> CompressionConfig
+    /// Registers path exclusions whose responses skip compression
+    pub fn with_excluded_prefixes<I, P>(mut self, exclusions: I) -> CompressionConfig
     where
         I: IntoIterator<Item = P>,
         P: Into<String>,
     {
-        self.excluded_prefixes = prefixes
+        self.exclusions = exclusions
             .into_iter()
-            .map(Into::into)
+            .map(|entry| Exclusion::new(&entry.into()))
             .collect::<Vec<_>>()
             .into();
         self
@@ -54,7 +57,7 @@ pub async fn middleware(
 ) -> Response {
     let path = req.uri().path().to_owned();
 
-    if super::prefix::is_excluded(&path, &config.excluded_prefixes) {
+    if super::prefix::is_excluded(&path, &config.exclusions) {
         return next.run(req).await;
     }
 

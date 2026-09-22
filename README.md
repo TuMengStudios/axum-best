@@ -16,7 +16,7 @@ axum-best is a Rust web project template built on [Axum](https://github.com/toki
 - **MySQL + SQLx**: Type-safe database operations with compile-time checked queries; offline query metadata is committed under `.sqlx`
 - **Redis Caching**: Async connection pooling via `bb8-redis` (tokio-native, r2d2-style API) over the `redis` crate for caching and session-like storage
 - **Request Validation**: Input validation with `validator` and `axum-valid`
-- **Middleware Stack**: Request-ID tracing, CORS, request decompression, timeout (`http.timeout_secs`), response compression with per-path exclusions, and route-level rate limiting (see `http.timeout_excluded_paths` / `http.compression_excluded_paths` in `etc/config.toml`)
+- **Middleware Stack**: Request-ID tracing, CORS, request decompression, timeout (`http.timeout_secs`), response compression with per-path exclusions (prefixes or `regex:` patterns), and route-level rate limiting (see `http.timeout_excluded_paths` / `http.compression_excluded_paths` in `etc/config.toml`)
 - **GCRA Rate Limiting**: In-process GCRA limiting with `governor`, supporting independent per-route quotas for client IPs and authenticated user IDs
 - **Structured Logging**: JSON log output with rotation, configurable via `etc/config.toml`
 - **WeChat Mini-Program Login**: Placeholder login flow that maps a WeChat code to an existing user by `openid`
