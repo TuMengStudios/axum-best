@@ -6,6 +6,7 @@ use crate::core::worker_dispatcher::WorkerConf;
 use crate::data::cache::RedisConf;
 use crate::data::mysql::MysqlConf;
 use crate::data::wechat::WeChatConf;
+use crate::docs::SwaggerConf;
 use crate::logx::LogConfig;
 use crate::observability::OpenTelemetryConfig;
 use crate::transport::HttpConf;
@@ -45,6 +46,10 @@ pub struct AppConf {
     /// Prometheus metrics configuration. The route is disabled by default.
     #[serde(default)]
     pub metrics: MetricsConf,
+
+    /// Swagger configuration. Disabled by default, including production deployments.
+    #[serde(default)]
+    pub swagger: SwaggerConf,
 
     /// Background task pool configuration. Absent sections use the defaults.
     #[serde(default)]

@@ -6,7 +6,7 @@ use validator::Validate;
 use crate::models::user::UserInfo;
 
 /// WeChat mini program login request
-#[derive(Deserialize, Debug, Validate)]
+#[derive(Deserialize, Debug, Validate, utoipa::ToSchema)]
 pub struct WxMiniLoginRequest {
     /// Login code obtained from WeChat login
     /// After using wx.login().then(res=>{res.code})
@@ -18,7 +18,7 @@ pub struct WxMiniLoginRequest {
 
 /// WeChat mini program login response
 #[allow(unused)]
-#[derive(Serialize, SmartDefault)]
+#[derive(Serialize, SmartDefault, utoipa::ToSchema)]
 pub struct WxMiniLoginResponse {
     /// Display name stored for the user
     pub nick_name: String,
@@ -27,7 +27,7 @@ pub struct WxMiniLoginResponse {
 }
 
 /// Email login request structure
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate, utoipa::ToSchema)]
 pub struct EmailLoginRequest {
     /// User's email address
     #[validate(email)]
@@ -41,7 +41,7 @@ pub struct EmailLoginRequest {
 pub type EmailLoginResponse = WxMiniLoginResponse;
 
 /// Request structure for binding email to user account
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate, utoipa::ToSchema)]
 pub struct BindEmailRequest {
     /// Email address to bind
     #[validate(email)]
@@ -53,13 +53,13 @@ pub struct BindEmailRequest {
 }
 
 /// Response structure for email binding operation
-#[derive(Debug, Serialize, SmartDefault)]
+#[derive(Debug, Serialize, SmartDefault, utoipa::ToSchema)]
 pub struct BindEmailResponse {
     // Response placeholder for email binding
 }
 
 /// Pre-bind email request for sending validation code
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate, utoipa::ToSchema)]
 pub struct PreBindEmailRequest {
     /// Email address for pre-binding validation
     #[validate(email)]
@@ -67,13 +67,13 @@ pub struct PreBindEmailRequest {
 }
 
 /// Pre-bind email response after sending validation code
-#[derive(Debug, Serialize, SmartDefault)]
+#[derive(Debug, Serialize, SmartDefault, utoipa::ToSchema)]
 pub struct PreBindEmailResponse {
     // TODO: Add response fields for pre-bind email
 }
 
 /// Pagination structure for list requests
-#[derive(Debug, Validate, Deserialize)]
+#[derive(Debug, Validate, Deserialize, utoipa::ToSchema)]
 pub struct Paginator {
     /// Number of items per page (1-50)
     #[validate(range(min = 1, max = 50))]
@@ -87,7 +87,7 @@ pub type UsersListRequest = Paginator;
 pub type BooksListRequest = Paginator;
 
 /// Request structure for getting user by ID
-#[derive(Deserialize, Debug, Validate)]
+#[derive(Deserialize, Debug, Validate, utoipa::ToSchema)]
 pub struct ByUserIdRequest {
     /// User ID to search for
     #[validate(range(min = 1))]
@@ -97,7 +97,7 @@ pub struct ByUserIdRequest {
 pub type ByUserIdResponse = UserInfo;
 
 /// Request structure for getting random user
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, utoipa::IntoParams, utoipa::ToSchema)]
 pub struct RandomUserRequest {
     // No parameters needed for random user request
 }

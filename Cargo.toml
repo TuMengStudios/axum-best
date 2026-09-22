@@ -54,6 +54,8 @@ smart-default = { version = "0.7.1" }
 log = { version = "0.4.28", features = ["serde"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 axum-prometheus = { version = "0.10.1" }
+utoipa = { version = "5", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
 validator = { version = "0.20.0", features = ["derive"] }
 lazy_static = { version = "1.5.0", features = ["spin"] }
 derivative = { version = "2.1.3" }

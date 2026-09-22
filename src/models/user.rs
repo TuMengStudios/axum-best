@@ -8,7 +8,7 @@ use smart_default::SmartDefault;
 use sqlx::FromRow;
 
 /// User information entity representing a user in the system
-#[derive(FromRow, Debug, SmartDefault, Deserialize, Serialize)]
+#[derive(FromRow, Debug, SmartDefault, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct UserInfo {
     /// Unique identifier for the user
     pub id: i64,
