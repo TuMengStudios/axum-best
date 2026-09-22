@@ -1,23 +1,27 @@
 # noworkers
 
-项目内部的 Tokio 任务池：为异步任务提供并发槽位限制与执行超时控制。
+An internal Tokio task pool that limits concurrent asynchronous tasks and
+supports task execution timeouts.
 
-## 提交任务
+## Submitting Tasks
 
-两个提交方法都接收 `timeout: Duration`，仅控制**任务自身执行**时长，`Duration::ZERO` 表示不限：
+Both submission methods accept a `timeout: Duration`. It only limits the
+task's execution time; `Duration::ZERO` disables the execution timeout:
 
-| 方法 | 执行方式 | 返回值 |
+| Method | Execution | Return value |
 | --- | --- | --- |
-| `submit_task` | 在调用方任务里原地 `await`，等待完成 | `Result<F::Output, TaskError>` |
-| `spawn_task` | 等到槽位后 `tokio::spawn` 丢后台，立即返回 | 无，错误仅写 `tracing` |
+| `submit_task` | Awaits the task in the caller's task until it completes | `Result<F::Output, TaskError>` |
+| `spawn_task` | Calls `tokio::spawn` after acquiring a slot and returns immediately | None; errors are reported through `tracing` |
 
-`timeout` 不约束**等待池槽位**的耗时。等待槽位超时由 `Pool::new` 的 `spawn_timeout` 控制，两个提交方法在执行任务前都会先 `await` 申请一个空闲槽位：
+`timeout` does not limit the time spent waiting for a pool slot. Slot wait time
+is controlled by `Pool::new`'s `spawn_timeout`. Both methods acquire a free slot
+before running the task:
 
-- `submit_task` 在拿不到槽位时返回 `Err(TaskError::SpawnTimeout)`。
-- `spawn_task` 在拿不到槽位时静默丢弃任务（仅写日志），调用方无感知。
-- `spawn_timeout` 传 `Duration::ZERO` 时实际使用 1s。
+- `submit_task` returns `Err(TaskError::SpawnTimeout)` if no slot is acquired.
+- `spawn_task` silently drops the task when no slot is acquired and only logs the failure.
+- `Duration::ZERO` for `spawn_timeout` defaults to one second.
 
-## 示例
+## Example
 
 ```rust
 use std::time::Duration;
@@ -26,32 +30,34 @@ use noworkers::Pool;
 async fn example() -> Result<(), Box<dyn std::error::Error>> {
     let pool = Pool::new(16, Duration::from_millis(100), "background");
 
-    // 同步等待结果，30s 执行超时
+    // Wait for the result with a 30-second execution timeout.
     let output = pool
         .submit_task(Duration::from_secs(30), async { 1 + 1 })
         .await?;
     assert_eq!(output, 2);
 
-    // 不限时执行
+    // Run without an execution timeout.
     pool.submit_task(Duration::ZERO, async { 2 + 2 }).await?;
 
-    // 后台任务，30s 执行超时，错误只记日志
+    // Run in the background with a 30-second execution timeout.
     pool.spawn_task(Duration::from_secs(30), async {}).await;
 
     Ok(())
 }
 ```
 
-## 错误类型
+## Errors
 
-`TaskError`：
+`TaskError` has the following variants:
 
-- `SpawnTimeout`：等待池槽位超时，受 `Pool::new` 的 `spawn_timeout` 约束。
-- `RunTimeout`：任务执行超时，受提交方法的 `timeout` 参数约束。
-- `SpawnSemaphoreAcquireError`：信号量获取失败。仅当信号量被显式 `close()` 时返回，本 crate 不会主动关闭，正常流程不会遇到。
+- `SpawnTimeout`: Waiting for a pool slot exceeded the `spawn_timeout` configured by `Pool::new`.
+- `RunTimeout`: Task execution exceeded the `timeout` passed to the submission method.
+- `SpawnSemaphoreAcquireError`: Acquiring a semaphore permit failed. This is only returned when the semaphore is explicitly closed; this crate never closes it during normal operation.
 
-`submit_task` 会把以上错误返回给调用方；`spawn_task` 全部内部消化，仅写日志。
+`submit_task` returns these errors to the caller. `spawn_task` handles them
+internally and only reports them through `tracing`.
 
-## 边界
+## Scope
 
-该 crate 是进程内任务池，不提供持久化、进程崩溃恢复或跨进程共享能力。
+This crate provides an in-process task pool. It does not provide persistence,
+crash recovery, or cross-process coordination.
