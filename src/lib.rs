@@ -8,6 +8,7 @@ pub mod handlers;
 pub mod logx;
 pub mod models;
 pub mod observability;
+pub mod openapi;
 pub mod repos;
 pub mod routers;
 pub mod services;

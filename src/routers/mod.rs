@@ -15,6 +15,8 @@ mod metrics;
 mod user;
 
 use axum::Router;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::core::state::AppState;
 
@@ -26,6 +28,10 @@ async fn not_implemented() -> crate::core::Result<u8> {
 /// the global middleware stack, then the optional metrics endpoint.
 pub fn app_routers(state: AppState) -> Router {
     let router = Router::new()
+        .merge(
+            SwaggerUi::new("/swagger-ui")
+                .url("/api-docs/openapi.json", crate::openapi::ApiDoc::openapi()),
+        )
         .merge(user::routes(&state))
         .merge(foo::routes(&state))
         .merge(health::routes())
