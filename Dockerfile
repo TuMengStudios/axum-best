@@ -67,9 +67,5 @@ USER app
 # 暴露端口
 EXPOSE 8080
 
-# 设置健康检查
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
-
 # 启动应用
 CMD ["/app/axum-best", "--conf", "/app/etc/config.toml"]
