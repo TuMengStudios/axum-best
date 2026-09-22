@@ -17,14 +17,15 @@ use crate::transport::middleware::timeout;
 
 /// Applies the global middleware stack.
 ///
-/// Order, outermost to innermost (each `.layer()` call wraps everything
-/// above it, so the last call is the outermost):
-///   CORS
-///   timeout               time budget (covers compression work)
-///   compression           negotiates from Accept-Encoding
-///   OpenTelemetry         adds the trace id response header before compression
+/// Order, outermost to innermost (the first `.layer()` call is the outermost,
+/// each subsequent call wraps inside the previous one):
+///   tracing               request/response logging
 ///   request decompression (from `layer`'s ServiceBuilder)
-///   tracing
+///   OpenTelemetry         adds the trace id response header before compression
+///   compression           negotiates from Accept-Encoding
+///   timeout               time budget (covers compression work)
+///   body limit            caps incoming request bodies
+///   CORS
 ///   routes
 pub fn apply(router: Router<AppState>, state: &AppState) -> Router<AppState> {
     let trace_layer = TraceLayer::new_for_http()
