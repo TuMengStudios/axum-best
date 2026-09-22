@@ -4,9 +4,11 @@
 //! - [`compression`]: compress responses, with per-path exclusions
 //! - [`cors`]: configure cross-origin resource sharing
 //! - [`auth`]: validate JWT bearer credentials
+//! - [`body_limit`]: reject requests whose body exceeds the configured size
 //! - [`prefix`]: the segment-aware path matching shared by the exclusions
 
 pub mod auth;
+pub mod body_limit;
 pub mod compression;
 pub mod cors;
 pub mod otel;
