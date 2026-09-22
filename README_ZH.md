@@ -15,7 +15,7 @@ axum-best 是一个基于 [Axum](https://github.com/tokio-rs/axum) 和 [Tokio](h
 - **清晰的分层架构**：传输层、处理器层、服务层、仓储层、数据层职责分离
 - **MySQL + SQLx**：类型安全的数据库操作，查询在编译期检查；`.sqlx` 目录中提交了离线查询元数据
 - **Redis 缓存**：通过 `bb8-redis` 异步连接池（tokio 原生，r2d2 风格 API，基于 `redis` crate）实现缓存与会话类存储
-- **请求校验**：使用 `validator` 和 `axum-valid` 进行输入校验
+- **请求校验**：使用 `validator` 进行输入校验（由项目自带的 `ValidJson` / `ValidQuery` / `ValidPath` / `ValidForm` 提取器封装）
 - **JWT 认证**：使用 `jsonwebtoken` 校验 Bearer Token；受保护处理器可直接声明 `Claims` 参数获取用户信息
 - **中间件栈**：请求 ID 链路追踪、CORS、请求解压缩、超时（`http.timeout_secs`）、响应压缩控制（支持按路径排除，前缀或 `regex:` 正则）以及按路由限流（见 `etc/config.toml` 的 `http.timeout_excluded_paths` / `http.compression_excluded_paths`）
 - **GCRA 限流**：使用 `governor` 实现进程内 GCRA 限流，支持按路由分别配置客户端 IP 和已认证用户 ID 的配额
