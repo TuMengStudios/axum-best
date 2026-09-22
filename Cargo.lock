@@ -283,6 +283,7 @@ dependencies = [
  "log",
  "manifest-dir-macros",
  "md-5",
+ "noworkers",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
