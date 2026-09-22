@@ -9,6 +9,7 @@
 //! - [`openapi`]: optional Swagger UI and OpenAPI document
 //! - [`layers`]: the global middleware stack applied to the merged router
 
+mod fallback;
 mod foo;
 mod health;
 mod layers;
@@ -20,10 +21,6 @@ use axum::Router;
 
 use crate::core::state::AppState;
 
-async fn not_implemented() -> crate::core::Result<u8> {
-    Err(crate::errors::ErrNotImplemented.clone())
-}
-
 /// Builds the application router: merge the per-domain route modules, apply
 /// the global middleware stack, then the optional metrics endpoint.
 pub fn app_routers(state: AppState) -> Router {
@@ -31,7 +28,7 @@ pub fn app_routers(state: AppState) -> Router {
         .merge(user::routes(&state))
         .merge(foo::routes(&state))
         .merge(health::routes())
-        .fallback(not_implemented);
+        .fallback(fallback::not_implemented);
 
     let router = openapi::apply(router, &state);
 
