@@ -1,4 +1,4 @@
-.PHONY: init test build
+.PHONY: init build test fmt clippy
 
 init:
 	go install github.com/conventionalcommit/commitlint@v0.10.1
@@ -10,3 +10,9 @@ build:
 
 test:
 	cargo nextest run --all-features --verbose
+
+fmt:
+	cargo fmt --all
+
+clippy:
+	cargo clippy --all-targets --all-features -- -D warnings
