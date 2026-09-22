@@ -66,6 +66,11 @@ tracer_name = "my-app"
 path = "/metrics"
 
 
+[swagger]
+# Swagger UI and OpenAPI document exposure. Keep disabled in production.
+enabled = true
+
+
 [worker]
 # Background task pool configuration
 # -----------------------------------------------------------------------------

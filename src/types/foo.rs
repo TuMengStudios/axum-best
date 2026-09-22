@@ -5,7 +5,7 @@ use smart_default::SmartDefault;
 use validator::Validate;
 
 /// Request structure for foo search operations
-#[derive(Derivative, Deserialize, SmartDefault, Validate)]
+#[derive(Derivative, Deserialize, SmartDefault, Validate, utoipa::IntoParams, utoipa::ToSchema)]
 #[derivative(Debug)]
 pub struct FooRequest {
     /// Search keyword for foo items
@@ -15,14 +15,14 @@ pub struct FooRequest {
 }
 
 /// Response structure for foo search operations
-#[derive(Serialize, Default, Debug)]
+#[derive(Serialize, Default, Debug, utoipa::ToSchema)]
 pub struct FooResponse {
     /// List of foo items matching the search criteria
     pub list: Vec<FooItem>,
 }
 
 /// Individual foo item structure
-#[derive(Default, Debug, Serialize)]
+#[derive(Default, Debug, Serialize, utoipa::ToSchema)]
 pub struct FooItem {
     /// Title of the foo item
     pub title: String,

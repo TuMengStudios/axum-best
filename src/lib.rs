@@ -3,6 +3,7 @@ pub mod auth;
 pub mod conf;
 pub mod core;
 pub mod data;
+pub mod docs;
 pub mod errors;
 pub mod handlers;
 pub mod logx;

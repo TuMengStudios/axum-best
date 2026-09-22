@@ -6,12 +6,14 @@
 //! - [`foo`]: demo `/foo` route behind the auth middleware
 //! - [`health`]: public health check
 //! - [`metrics`]: optional Prometheus metrics endpoint
+//! - [`openapi`]: optional Swagger UI and OpenAPI document
 //! - [`layers`]: the global middleware stack applied to the merged router
 
 mod foo;
 mod health;
 mod layers;
 mod metrics;
+mod openapi;
 mod user;
 
 use axum::Router;
@@ -30,6 +32,8 @@ pub fn app_routers(state: AppState) -> Router {
         .merge(foo::routes(&state))
         .merge(health::routes())
         .fallback(not_implemented);
+
+    let router = openapi::apply(router, &state);
 
     let router = layers::apply(router, &state);
     metrics::apply(router, &state).with_state(state)

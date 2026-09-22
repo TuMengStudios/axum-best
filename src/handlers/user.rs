@@ -27,6 +27,20 @@ use crate::types::user::WxMiniLoginResponse;
 ///
 /// # Returns
 /// * `Result<BindEmailResponse>` - Binding operation result
+#[utoipa::path(
+    post,
+    path = "/user/email",
+    tag = "User",
+    summary = "Bind an email address",
+    description = "Binds an email address to the currently authenticated user. The verification code in the request must be valid.",
+    security(("bearerAuth" = [])),
+    request_body = BindEmailRequest,
+    responses(
+        (status = 200, description = "Email bound successfully", body = BindEmailResponse),
+        (status = 400, description = "Request validation failed"),
+        (status = 401, description = "Missing or invalid authentication")
+    )
+)]
 pub async fn bind_email(
     State(state): State<AppState>,
     ValidJson(req): ValidJson<BindEmailRequest>,
@@ -43,6 +57,18 @@ pub async fn bind_email(
 ///
 /// # Returns
 /// * `Result<WxMiniLoginResponse>` - Login response with user information
+#[utoipa::path(
+    post,
+    path = "/user/wx/login",
+    tag = "User",
+    summary = "Log in with WeChat",
+    description = "Logs in or creates a user with a WeChat mini-program login code and returns basic user information.",
+    request_body = WxMiniLoginRequest,
+    responses(
+        (status = 200, description = "Login successful", body = WxMiniLoginResponse),
+        (status = 400, description = "Invalid WeChat login code or request parameters")
+    )
+)]
 pub async fn wechat_login(
     State(state): State<AppState>,
     ValidJson(req): ValidJson<WxMiniLoginRequest>,
@@ -51,6 +77,21 @@ pub async fn wechat_login(
     state.user_service.wx_login(req).await
 }
 
+#[utoipa::path(
+    get,
+    path = "/user/{id}",
+    tag = "User",
+    summary = "Get a user by ID",
+    description = "Returns detailed user information for the specified user ID. This endpoint requires a Bearer JWT.",
+    params(("id" = i64, Path, description = "User ID; must be greater than 0")),
+    security(("bearerAuth" = [])),
+    responses(
+        (status = 200, description = "User found", body = UserInfo),
+        (status = 400, description = "Invalid user ID format or value"),
+        (status = 401, description = "Missing or invalid authentication"),
+        (status = 404, description = "User not found")
+    )
+)]
 pub async fn user_by_id(
     State(state): State<AppState>,
     ValidPath(req): ValidPath<ByUserIdRequest>,
@@ -66,6 +107,20 @@ pub async fn user_by_id(
 ///
 /// # Returns
 /// * `Result<PreBindEmailResponse>` - Pre-validation result
+#[utoipa::path(
+    post,
+    path = "/user/email/pre",
+    tag = "User",
+    summary = "Send an email verification code",
+    description = "Sends an email verification code to the specified address. The current user must be authenticated.",
+    security(("bearerAuth" = [])),
+    request_body = PreBindEmailRequest,
+    responses(
+        (status = 200, description = "Verification code sent", body = PreBindEmailResponse),
+        (status = 400, description = "Invalid email address"),
+        (status = 401, description = "Missing or invalid authentication")
+    )
+)]
 pub async fn pre_bind_email(
     State(state): State<AppState>,
     Json(req): Json<PreBindEmailRequest>,
@@ -74,6 +129,19 @@ pub async fn pre_bind_email(
     state.user_service.pre_bind_email(req).await
 }
 
+#[utoipa::path(
+    get,
+    path = "/user/random",
+    tag = "User",
+    summary = "Generate a random user",
+    description = "Generates and returns a random user example. The current user must be authenticated.",
+    security(("bearerAuth" = [])),
+    params(RandomUserRequest),
+    responses(
+        (status = 200, description = "Random user generated successfully", body = UserInfo),
+        (status = 401, description = "Missing or invalid authentication")
+    )
+)]
 pub async fn random_user(
     State(state): State<AppState>,
     Query(req): Query<RandomUserRequest>,
