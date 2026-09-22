@@ -101,6 +101,10 @@ port = 8080
 # Defaults to 30 seconds.
 timeout_secs = 30
 
+# Maximum request body size in bytes. Requests larger than this are rejected
+# before reaching a handler. Defaults to 30 MiB.
+request_body_limit_bytes = 31457280
+
 # Path prefixes excluded from the request timeout middleware (30s budget)
 # Segment-aware prefix match: "/stream" excludes "/stream" and "/stream/1"
 # but not "/streaming". Useful for SSE streams, file uploads or reports.

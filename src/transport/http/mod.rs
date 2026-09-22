@@ -27,6 +27,13 @@ pub struct HttpConf {
     #[default(30)]
     pub timeout_secs: u64,
 
+    /// Maximum request body size in bytes enforced by the body limit middleware.
+    ///
+    /// Defaults to 30 MiB.
+    #[serde(default = "default_request_body_limit_bytes")]
+    #[default(30 * 1024 * 1024)]
+    pub request_body_limit_bytes: usize,
+
     /// Path prefixes excluded from the request timeout middleware
     ///
     /// Segment-aware prefix match: "/stream" excludes "/stream" and "/stream/1"
@@ -50,6 +57,10 @@ pub struct HttpConf {
     /// not allow credentials because browsers reject that combination.
     #[serde(default)]
     pub cors_allowed_origins: Vec<String>,
+}
+
+fn default_request_body_limit_bytes() -> usize {
+    30 * 1024 * 1024
 }
 
 impl HttpConf {
@@ -85,5 +96,29 @@ impl HttpConf {
         println!("listen {display_addr} success");
 
         Ok(listener)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::HttpConf;
+
+    #[test]
+    fn request_body_limit_defaults_to_30_mib() {
+        let config: HttpConf =
+            toml::from_str("listen = \"127.0.0.1\"\nport = 8080\ntimeout_secs = 30")
+                .expect("HTTP configuration should parse");
+
+        assert_eq!(config.request_body_limit_bytes, 30 * 1024 * 1024);
+    }
+
+    #[test]
+    fn request_body_limit_is_configurable_in_bytes() {
+        let config: HttpConf = toml::from_str(
+            "listen = \"127.0.0.1\"\nport = 8080\ntimeout_secs = 30\nrequest_body_limit_bytes = 1048576",
+        )
+        .expect("HTTP configuration should parse");
+
+        assert_eq!(config.request_body_limit_bytes, 1024 * 1024);
     }
 }
