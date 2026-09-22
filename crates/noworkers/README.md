@@ -1,4 +1,4 @@
-# task-pool
+# noworkers
 
 项目内部的 Tokio 任务池：为异步任务提供并发槽位限制与执行超时控制。
 
@@ -21,7 +21,7 @@
 
 ```rust
 use std::time::Duration;
-use task_pool::Pool;
+use noworkers::Pool;
 
 async fn example() -> Result<(), Box<dyn std::error::Error>> {
     let pool = Pool::new(16, Duration::from_millis(100), "background");

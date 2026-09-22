@@ -1,5 +1,5 @@
 [package]
-name = "task-pool"
+name = "noworkers"
 version = "0.1.0"
 edition = "2024"
 description = "A project-owned facade for bounded Tokio background tasks"
