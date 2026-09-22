@@ -1,0 +1,15 @@
+[package]
+name = "task-pool"
+version = "0.1.0"
+edition = "2024"
+description = "A project-owned facade for bounded Tokio background tasks"
+license = "MIT"
+publish = false
+
+[dependencies]
+thiserror = "2"
+tokio = { version = "1.47.1", features = ["rt", "sync", "time"] }
+tracing = "0.1.41"
+
+[dev-dependencies]
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread", "sync", "time"] }

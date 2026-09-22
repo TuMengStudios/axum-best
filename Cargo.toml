@@ -13,7 +13,7 @@ license = "MIT"
 readme = "README.md"
 
 [workspace]
-members = ["crates/gitver", "crates/nextid"]
+members = ["crates/gitver", "crates/nextid", "crates/task-pool"]
 
 [dependencies]
 tokio = { version = "1.47.1", features = ["full"] }
