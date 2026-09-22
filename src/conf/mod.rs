@@ -18,6 +18,14 @@ pub struct MetricsConf {
     pub path: Option<String>,
 }
 
+/// Swagger UI and OpenAPI document exposure settings.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct SwaggerConf {
+    /// Exposes Swagger UI and the OpenAPI document when enabled.
+    #[serde(default)]
+    pub enabled: bool,
+}
+
 impl MetricsConf {
     pub fn path(&self) -> Option<&str> {
         self.path.as_deref().filter(|path| !path.is_empty())
@@ -45,6 +53,10 @@ pub struct AppConf {
     /// Prometheus metrics configuration. The route is disabled by default.
     #[serde(default)]
     pub metrics: MetricsConf,
+
+    /// Swagger configuration. Disabled by default, including production deployments.
+    #[serde(default)]
+    pub swagger: SwaggerConf,
 
     /// Background task pool configuration. Absent sections use the defaults.
     #[serde(default)]
@@ -100,7 +112,7 @@ impl AppConf {
 
 #[cfg(test)]
 mod tests {
-    use super::MetricsConf;
+    use super::{MetricsConf, SwaggerConf};
     use crate::observability::OpenTelemetryConfig;
 
     #[test]
@@ -116,6 +128,19 @@ mod tests {
             .expect("metrics configuration should parse");
 
         assert_eq!(config.path(), Some("/internal/metrics"));
+    }
+
+    #[test]
+    fn swagger_is_disabled_by_default() {
+        assert!(!SwaggerConf::default().enabled);
+    }
+
+    #[test]
+    fn swagger_settings_are_configurable() {
+        let config: SwaggerConf =
+            toml::from_str("enabled = true").expect("swagger configuration should parse");
+
+        assert!(config.enabled);
     }
 
     #[test]

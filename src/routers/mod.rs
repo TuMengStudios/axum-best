@@ -27,15 +27,21 @@ async fn not_implemented() -> crate::core::Result<u8> {
 /// Builds the application router: merge the per-domain route modules, apply
 /// the global middleware stack, then the optional metrics endpoint.
 pub fn app_routers(state: AppState) -> Router {
+    let swagger_enabled = state.cfg.swagger.enabled;
     let router = Router::new()
-        .merge(
-            SwaggerUi::new("/swagger-ui")
-                .url("/api-docs/openapi.json", crate::openapi::ApiDoc::openapi()),
-        )
         .merge(user::routes(&state))
         .merge(foo::routes(&state))
         .merge(health::routes())
         .fallback(not_implemented);
+
+    let router = if swagger_enabled {
+        router.merge(
+            SwaggerUi::new("/swagger-ui")
+                .url("/api-docs/openapi.json", crate::openapi::ApiDoc::openapi()),
+        )
+    } else {
+        router
+    };
 
     let router = layers::apply(router, &state);
     metrics::apply(router, &state).with_state(state)
