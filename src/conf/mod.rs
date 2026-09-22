@@ -2,6 +2,7 @@ use derivative::Derivative;
 use serde::Deserialize;
 
 use crate::auth::JwtConfig;
+use crate::core::worker_dispatcher::WorkerConf;
 use crate::data::cache::RedisConf;
 use crate::data::mysql::MysqlConf;
 use crate::data::wechat::WeChatConf;
@@ -44,6 +45,10 @@ pub struct AppConf {
     /// Prometheus metrics configuration. The route is disabled by default.
     #[serde(default)]
     pub metrics: MetricsConf,
+
+    /// Background task pool configuration. Absent sections use the defaults.
+    #[serde(default)]
+    pub worker: WorkerConf,
 
     /// HTTP server configuration section
     ///

@@ -9,6 +9,7 @@ use tracing_appender::non_blocking::WorkerGuard;
 
 use crate::conf::AppConf;
 use crate::core::state::AppState;
+use crate::core::worker_dispatcher::WorkerDispatcher;
 use crate::data::kv::RedisKvStore;
 use crate::data::user::MySqlUserRepo;
 use crate::data::wechat::WechatApiRepo;
@@ -33,6 +34,12 @@ use crate::services::user::UserService;
 /// needs to reach services after assembly, add a purpose-built handle for
 /// that specific need rather than a general accessor.
 ///
+/// The one exception is `worker`, that purpose-built handle for background
+/// work: the shared `WorkerDispatcher` is owned here so tasks can be submitted
+/// across the whole lifecycle — startup paths in this context, handlers via
+/// the clone inside `AppState`, and future shutdown work — all backed by one
+/// pool.
+///
 /// The bb8 redis pool has no close API and lives solely inside its
 /// repository (part of the router's state); dropping the context tears it
 /// down.
@@ -40,6 +47,10 @@ pub struct AppContext {
     cfg: Arc<AppConf>,
     router: Router,
     db_pool: MySqlPool,
+    /// Shared fire-and-forget task pool; a clone lives inside `AppState`.
+    /// Kept on the context so startup and shutdown paths can submit tasks too.
+    #[allow(dead_code)]
+    worker: WorkerDispatcher,
     /// Keeps the OTLP exporter alive until the application shuts down.
     /// Declared before `work_guard` so exporter shutdown can still write diagnostics.
     #[allow(dead_code)]
@@ -58,6 +69,10 @@ impl AppContext {
         let otel_guard = observability::init_open_telemetry(env!("CARGO_PKG_NAME"), &cfg.otel)?;
         let guard = cfg.log.init_log(otel_guard.tracer())?;
         let cfg = Arc::new(cfg);
+
+        // build the shared background task pool; it only depends on cfg, so
+        // it is ready before any connection pool
+        let worker = WorkerDispatcher::new(&cfg.worker);
 
         // build db connect pool
         let db_conn = cfg
@@ -79,13 +94,14 @@ impl AppContext {
             Arc::new(RedisKvStore::new(redis_client.clone())),
             Arc::new(WechatApiRepo::new(&cfg.wechat)),
         );
-        let app_state = AppState::new(cfg.clone(), user_service, FooService);
+        let app_state = AppState::new(cfg.clone(), worker.clone(), user_service, FooService);
         let router = routers::app_routers(app_state);
 
         let app = AppContext {
             cfg,
             router,
             db_pool: db_conn,
+            worker,
             otel_guard,
             work_guard: guard,
         };
