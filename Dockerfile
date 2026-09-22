@@ -1,42 +1,20 @@
 # 使用官方 Rust 镜像作为构建环境（使用 1.89 稳定版本）
 FROM rust:1.89-alpine AS builder
 
-# 安装必要的构建依赖（包括静态 SSL 库和 MySQL 开发包）
-RUN apk add --no-cache musl-dev pkgconfig openssl-dev openssl-libs-static mariadb-connector-c-dev
+# 安装必要的构建依赖（包括静态 SSL 库、MySQL 开发包和 git——gitver proc-macro 需要）
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev openssl-libs-static mariadb-connector-c-dev git
 
 # 创建工作目录
 WORKDIR /app
 
-# 复制 Cargo 配置文件
-COPY .cargo ./.cargo
-
-COPY .env ./.env
-
-# 复制 Cargo.toml 和 Cargo.lock
-COPY Cargo.toml Cargo.lock ./
-
-# 复制基准测试文件
-COPY benches ./benches
-
-# 复制 SQLx 查询缓存
-COPY .sqlx ./.sqlx
-
-# 创建空的 src 目录和 main.rs 文件来缓存依赖
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-
-# 构建依赖（这一步会被缓存）
-RUN cargo build --release
-
-# 现在复制实际的源代码
-COPY src ./src
-COPY etc ./etc
-COPY migrations ./migrations
-ENV CARGO_TARGET_DIR=~/.cargo/target
-RUN cargo install sqlx-cli --features mysql
-# 设置 SQLx 离线模式
-ENV SQLX_OFFLINE=true
+# 复制整个项目（.dockerignore 已排除 target/、IDE、文档等；.git/ 保留供 gitver 使用）
+COPY . .
 
 # 构建应用
+ENV CARGO_TARGET_DIR=~/.cargo/target
+# sqlx-cli 0.9.0 需要 rustc 1.94+，与本镜像的 rustc 1.89 不兼容；锁定到 0.8.6（与本地一致）
+RUN cargo install sqlx-cli --version 0.8.6 --locked --features mysql
+ENV SQLX_OFFLINE=true
 RUN cargo build --release
 
 # 使用轻量级运行时镜像（使用固定版本）
