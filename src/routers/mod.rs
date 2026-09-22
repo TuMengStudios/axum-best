@@ -37,7 +37,7 @@ pub fn app_routers(state: AppState) -> Router {
     let router = if swagger_enabled {
         router.merge(
             SwaggerUi::new("/swagger-ui")
-                .url("/api-docs/openapi.json", crate::openapi::ApiDoc::openapi()),
+                .url("/api-docs/openapi.json", crate::docs::openapi::ApiDoc::openapi()),
         )
     } else {
         router

@@ -6,6 +6,7 @@ use crate::core::worker_dispatcher::WorkerConf;
 use crate::data::cache::RedisConf;
 use crate::data::mysql::MysqlConf;
 use crate::data::wechat::WeChatConf;
+use crate::docs::SwaggerConf;
 use crate::logx::LogConfig;
 use crate::observability::OpenTelemetryConfig;
 use crate::transport::HttpConf;
@@ -16,14 +17,6 @@ pub struct MetricsConf {
     /// Metrics endpoint path. The route is disabled when this is absent or empty.
     #[serde(default)]
     pub path: Option<String>,
-}
-
-/// Swagger UI and OpenAPI document exposure settings.
-#[derive(Debug, Clone, Default, Deserialize)]
-pub struct SwaggerConf {
-    /// Exposes Swagger UI and the OpenAPI document when enabled.
-    #[serde(default)]
-    pub enabled: bool,
 }
 
 impl MetricsConf {
@@ -112,7 +105,7 @@ impl AppConf {
 
 #[cfg(test)]
 mod tests {
-    use super::{MetricsConf, SwaggerConf};
+    use super::MetricsConf;
     use crate::observability::OpenTelemetryConfig;
 
     #[test]
@@ -128,19 +121,6 @@ mod tests {
             .expect("metrics configuration should parse");
 
         assert_eq!(config.path(), Some("/internal/metrics"));
-    }
-
-    #[test]
-    fn swagger_is_disabled_by_default() {
-        assert!(!SwaggerConf::default().enabled);
-    }
-
-    #[test]
-    fn swagger_settings_are_configurable() {
-        let config: SwaggerConf =
-            toml::from_str("enabled = true").expect("swagger configuration should parse");
-
-        assert!(config.enabled);
     }
 
     #[test]
