@@ -16,6 +16,7 @@ use crate::handlers::foo;
 use crate::handlers::health;
 use crate::handlers::user as userHandler;
 use crate::transport::middleware::auth;
+use crate::transport::middleware::body_limit;
 use crate::transport::middleware::compression;
 use crate::transport::middleware::cors;
 use crate::transport::middleware::otel;
@@ -106,6 +107,7 @@ pub fn app_routers(state: AppState) -> Router {
                 .with_excluded_prefixes(state.cfg.http.timeout_excluded_paths.iter().cloned()),
             timeout::middleware,
         ))
+        .layer(body_limit::body_limit(state.cfg.http.request_body_limit_bytes))
         .layer(cors::layer(&state.cfg.http.cors_allowed_origins));
 
     let router = match state.cfg.metrics.path() {
