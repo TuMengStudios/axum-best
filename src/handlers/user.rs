@@ -1,13 +1,13 @@
 use axum::Json;
-use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
-use axum_valid::Valid;
 use tracing::debug;
 use tracing::info;
 
 use crate::core::Result;
 use crate::core::state::AppState;
+use crate::core::valid::ValidJson;
+use crate::core::valid::ValidPath;
 use crate::models::user::UserInfo;
 use crate::types::user::BindEmailRequest;
 use crate::types::user::BindEmailResponse;
@@ -29,7 +29,7 @@ use crate::types::user::WxMiniLoginResponse;
 /// * `Result<BindEmailResponse>` - Binding operation result
 pub async fn bind_email(
     State(state): State<AppState>,
-    Valid(Json(req)): Valid<Json<BindEmailRequest>>,
+    ValidJson(req): ValidJson<BindEmailRequest>,
 ) -> Result<BindEmailResponse> {
     info!("user email: {req:?}");
     state.user_service.bind_email(req).await
@@ -45,7 +45,7 @@ pub async fn bind_email(
 /// * `Result<WxMiniLoginResponse>` - Login response with user information
 pub async fn wechat_login(
     State(state): State<AppState>,
-    Valid(Json(req)): Valid<Json<WxMiniLoginRequest>>,
+    ValidJson(req): ValidJson<WxMiniLoginRequest>,
 ) -> Result<WxMiniLoginResponse> {
     debug!("code {}", req.code);
     state.user_service.wx_login(req).await
@@ -53,7 +53,7 @@ pub async fn wechat_login(
 
 pub async fn user_by_id(
     State(state): State<AppState>,
-    Path(req): Path<ByUserIdRequest>,
+    ValidPath(req): ValidPath<ByUserIdRequest>,
 ) -> Result<UserInfo> {
     info!("user by id {:?}", req);
     state.user_service.by_id(req).await
