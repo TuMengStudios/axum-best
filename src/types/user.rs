@@ -87,9 +87,10 @@ pub type UsersListRequest = Paginator;
 pub type BooksListRequest = Paginator;
 
 /// Request structure for getting user by ID
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Validate)]
 pub struct ByUserIdRequest {
     /// User ID to search for
+    #[validate(range(min = 1))]
     pub id: i64,
 }
 
