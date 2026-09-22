@@ -1,128 +1,36 @@
-use std::time::Duration;
+//! routers module
+//!
+//! Construct web application router, one submodule per route domain:
+//!
+//! - [`user`]: `/user/*` routes, auth-guarded except the WeChat login
+//! - [`foo`]: demo `/foo` route behind the auth middleware
+//! - [`health`]: public health check
+//! - [`metrics`]: optional Prometheus metrics endpoint
+//! - [`layers`]: the global middleware stack applied to the merged router
+
+mod foo;
+mod health;
+mod layers;
+mod metrics;
+mod user;
 
 use axum::Router;
-use axum::middleware;
-use axum::routing::get;
-use axum::routing::post;
-use axum_prometheus::PrometheusMetricLayer;
-use tower::ServiceBuilder;
-use tower_http::decompression::RequestDecompressionLayer;
-use tower_http::trace;
-use tower_http::trace::TraceLayer;
-use tracing::Level;
 
 use crate::core::state::AppState;
-use crate::handlers::foo;
-use crate::handlers::health;
-use crate::handlers::user as userHandler;
-use crate::transport::middleware::auth;
-use crate::transport::middleware::body_limit;
-use crate::transport::middleware::compression;
-use crate::transport::middleware::cors;
-use crate::transport::middleware::otel;
-use crate::transport::middleware::rate_limit::RateLimitLayer;
-use crate::transport::middleware::timeout;
 
 async fn not_implemented() -> crate::core::Result<u8> {
     Err(crate::errors::ErrNotImplemented.clone())
 }
 
+/// Builds the application router: merge the per-domain route modules, apply
+/// the global middleware stack, then the optional metrics endpoint.
 pub fn app_routers(state: AppState) -> Router {
-    let trace_layer = TraceLayer::new_for_http()
-        .on_response(trace::DefaultOnResponse::new().level(Level::INFO))
-        .on_request(trace::DefaultOnRequest::new().level(Level::INFO))
-        .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR))
-        .on_eos(trace::DefaultOnEos::new().level(Level::INFO))
-        .on_body_chunk(trace::DefaultOnBodyChunk::new());
-
-    let layer = ServiceBuilder::new()
-        .layer(RequestDecompressionLayer::new())
-        .layer(trace_layer);
-    //
-    // Middleware stack, outermost to innermost (each `.layer()` call wraps
-    // everything above it, so the last call is the outermost):
-    //   CORS
-    //   timeout               time budget (covers compression work)
-    //   compression           negotiates from Accept-Encoding
-    //   OpenTelemetry         adds the trace id response header before compression
-    //   request decompression (from `layer`'s ServiceBuilder)
-    //   tracing
-    //   routes
-    let protected_routes = Router::new()
-        .route(
-            "/user/{id}",
-            get(userHandler::user_by_id).layer(RateLimitLayer::with_login_quota(
-                Duration::from_secs(5),
-                2,
-                2,
-            )),
-        )
-        .route(
-            "/user/email",
-            post(userHandler::bind_email).layer(RateLimitLayer::with_login_quota(
-                Duration::from_secs(10),
-                3,
-                3,
-            )),
-        )
-        .route(
-            "/user/email/pre",
-            post(userHandler::pre_bind_email).layer(RateLimitLayer::with_login_quota(
-                Duration::from_secs(10),
-                2,
-                2,
-            )),
-        )
-        .route(
-            "/user/random",
-            get(userHandler::random_user).layer(RateLimitLayer::with_login_quota(
-                Duration::from_secs(5),
-                2,
-                2,
-            )),
-        )
-        .route(
-            "/foo",
-            get(foo::foo).layer(RateLimitLayer::with_login_quota(Duration::from_secs(5), 2, 2)),
-        )
-        .route_layer(middleware::from_fn_with_state(state.clone(), auth::auth));
-
     let router = Router::new()
-        .merge(protected_routes)
-        .route("/user/wx/login", post(userHandler::wechat_login))
-        .route(
-            "/health",
-            get(health::health).layer(RateLimitLayer::with_quota(Duration::from_secs(10), 2, 2)),
-        )
-        .fallback(not_implemented)
-        .layer(layer)
-        .layer(middleware::from_fn(otel::middleware))
-        .layer(middleware::from_fn_with_state(
-            compression::CompressionConfig::new()
-                .with_excluded_prefixes(state.cfg.http.compression_excluded_paths.iter().cloned()),
-            compression::middleware,
-        ))
-        .layer(middleware::from_fn_with_state(
-            timeout::TimeoutConfig::new(Duration::from_secs(state.cfg.http.timeout_secs))
-                .with_excluded_prefixes(state.cfg.http.timeout_excluded_paths.iter().cloned()),
-            timeout::middleware,
-        ))
-        .layer(body_limit::body_limit(state.cfg.http.request_body_limit_bytes))
-        .layer(cors::layer(&state.cfg.http.cors_allowed_origins));
+        .merge(user::routes(&state))
+        .merge(foo::routes(&state))
+        .merge(health::routes())
+        .fallback(not_implemented);
 
-    let router = match state.cfg.metrics.path() {
-        Some(path) => {
-            let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
-            router
-                .route(
-                    path,
-                    get(move || async move { metric_handle.render() })
-                        .layer(RateLimitLayer::with_quota(Duration::from_secs(10), 5, 5)),
-                )
-                .layer(prometheus_layer)
-        }
-        None => router,
-    };
-
-    router.with_state(state)
+    let router = layers::apply(router, &state);
+    metrics::apply(router, &state).with_state(state)
 }
