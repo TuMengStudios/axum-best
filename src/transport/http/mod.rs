@@ -34,19 +34,30 @@ pub struct HttpConf {
     #[default(30 * 1024 * 1024)]
     pub request_body_limit_bytes: usize,
 
-    /// Path prefixes excluded from the request timeout middleware
+    /// Paths excluded from the request timeout middleware
     ///
-    /// Segment-aware prefix match: "/stream" excludes "/stream" and "/stream/1"
-    /// but not "/streaming". Useful for SSE streams, file uploads or reports.
-    /// Defaults to an empty list (no exclusions).
+    /// Match rules, per entry:
+    /// - plain prefix, segment-aware: "/stream" excludes "/stream" and
+    ///   "/stream/1" but not "/streaming"
+    /// - "regex:"-prefixed entries are regular expressions matched against
+    ///   the full request path; invalid regexes abort the startup
+    ///
+    /// Suitable for long-running endpoints that may outlive the timeout
+    /// budget: SSE/WebSocket streams, large file uploads/downloads, report
+    /// or export generation. Defaults to an empty list (no exclusions).
     #[serde(default)]
     pub timeout_excluded_paths: Vec<String>,
 
-    /// Path prefixes whose responses skip the compression middleware
+    /// Paths whose responses skip the compression middleware
     ///
-    /// Segment-aware prefix match, same semantics as `timeout_excluded_paths`.
-    /// Useful for endpoints that stream (SSE) or already emit compressed
-    /// content. Defaults to an empty list (compress everything compressible).
+    /// Match rules: same as `timeout_excluded_paths` (segment-aware prefixes,
+    /// or "regex:"-prefixed regular expressions against the full path).
+    ///
+    /// Suitable for endpoints where compression is wrong or useless: SSE
+    /// streams (must not be buffered or compressed) and already-compressed
+    /// content such as images, videos, archives or PDFs. JSON/API responses
+    /// benefit from compression and need no exclusion. Defaults to an empty
+    /// list (compress everything compressible).
     #[serde(default)]
     pub compression_excluded_paths: Vec<String>,
 

@@ -105,15 +105,35 @@ timeout_secs = 30
 # before reaching a handler. Defaults to 30 MiB.
 request_body_limit_bytes = 31457280
 
-# Path prefixes excluded from the request timeout middleware (30s budget)
-# Segment-aware prefix match: "/stream" excludes "/stream" and "/stream/1"
-# but not "/streaming". Useful for SSE streams, file uploads or reports.
+# Paths excluded from the request timeout middleware (30s budget)
+#
+# Match rules (per entry):
+#   - Plain prefix, segment-aware: "/stream" excludes "/stream" and
+#     "/stream/1" but NOT "/streaming".
+#   - Regular expression: entries starting with "regex:" are matched against
+#     the full request path, e.g. "regex:^/reports/.+" or
+#     "regex:^/bigfiles/.+\.zip$". Invalid regexes abort the startup.
+#
+# Suitable for long-running endpoints that may outlive the 30s budget:
+#   - SSE / WebSocket streams:        "/sse", "/ws"
+#   - Large file uploads/downloads:   "/files/upload"
+#   - Report or export generation:    "regex:^/reports/.+"
+#
 # Defaults to an empty list (no exclusions).
 timeout_excluded_paths = []
 
-# Path prefixes whose responses skip the compression middleware
-# Same segment-aware prefix match. Useful for endpoints that stream (SSE)
-# or already emit compressed content (images, videos, archives).
+# Paths whose responses skip the compression middleware
+#
+# Match rules: same as timeout_excluded_paths (segment-aware prefixes, or
+# entries starting with "regex:" treated as regular expressions).
+#
+# Suitable for endpoints where compression is wrong or useless:
+#   - SSE streams (must not be buffered/compressed):        "/sse"
+#   - Already-compressed content that gains nothing from
+#     being re-compressed (images, videos, archives, PDFs):
+#     "regex:^/assets/.+\.(png|jpe?g|gif|mp4|zip)$"
+#
+# Not needed for JSON/API responses - those benefit from compression.
 # Defaults to an empty list (compress everything compressible).
 compression_excluded_paths = []
 
