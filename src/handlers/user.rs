@@ -1,4 +1,3 @@
-use axum::Json;
 use axum::extract::Query;
 use axum::extract::State;
 use tracing::debug;
@@ -123,7 +122,7 @@ pub async fn user_by_id(
 )]
 pub async fn pre_bind_email(
     State(state): State<AppState>,
-    Json(req): Json<PreBindEmailRequest>,
+    ValidJson(req): ValidJson<PreBindEmailRequest>,
 ) -> Result<PreBindEmailResponse> {
     info!("user {}", req.email);
     state.user_service.pre_bind_email(req).await
