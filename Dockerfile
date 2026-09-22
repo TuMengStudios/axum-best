@@ -11,7 +11,6 @@ WORKDIR /app
 COPY . .
 
 # 构建应用
-ENV CARGO_TARGET_DIR=~/.cargo/target
 # sqlx-cli 0.9.0 需要 rustc 1.94+，与本镜像的 rustc 1.89 不兼容；锁定到 0.8.6（与本地一致）
 RUN cargo install sqlx-cli --version 0.8.6 --locked --features mysql
 ENV SQLX_OFFLINE=true
