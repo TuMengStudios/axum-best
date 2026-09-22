@@ -1,6 +1,9 @@
 use axum::extract::Request;
 use tracing::warn;
 
+/// Fallback handler for any unmatched route: logs the request and returns the
+/// shared `ErrNotImplemented` (err_no `50000`) so the unified error envelope is
+/// preserved.
 pub(super) async fn not_implemented(req: Request) -> crate::core::Result<()> {
     let method = req.method().clone();
     let path = req.uri().path();
