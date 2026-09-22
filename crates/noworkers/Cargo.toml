@@ -1,0 +1,15 @@
+[package]
+name = "noworkers"
+version = "0.1.0"
+edition = "2024"
+description = "A project-owned facade for bounded Tokio background tasks"
+license = "MIT"
+publish = false
+
+[dependencies]
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

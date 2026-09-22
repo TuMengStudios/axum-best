@@ -1,6 +1,8 @@
 # dev tools
 
 ``` nex
+# commit message linter (Go based, requires Go toolchain; invoked by pre-commit)
+go install github.com/conventionalcommit/commitlint@v0.10.1
 # hot reload subcommand
 cargo install cargo-watch
 # test subcommand

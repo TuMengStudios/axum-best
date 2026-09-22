@@ -66,6 +66,22 @@ tracer_name = "my-app"
 path = "/metrics"
 
 
+[worker]
+# Background task pool configuration
+# -----------------------------------------------------------------------------
+
+# Maximum number of background tasks running concurrently
+# Controls how many detached background tasks can hold a pool slot at once
+# Defaults to twice the number of CPU cores; uncomment to pin an explicit value
+# capacity = 64
+
+# How long a task submission waits for a free pool slot, in seconds
+# When the pool is saturated, submissions are dropped with a warning log
+# after this budget elapses
+# Set to 0 to fall back to the pool's built-in default (1 second)
+spawn_timeout_secs = 1
+
+
 [http]
 # HTTP server configuration section
 # -----------------------------------------------------------------------------
