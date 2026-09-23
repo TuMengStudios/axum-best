@@ -3,7 +3,8 @@ use utoipa::OpenApi;
 use crate::models::user::UserInfo;
 use crate::types::foo::{FooItem, FooRequest, FooResponse};
 use crate::types::user::{
-    BindEmailRequest, BindEmailResponse, PreBindEmailRequest, PreBindEmailResponse,
+    BindEmailRequest, BindEmailResponse, ByUserIdResponse, PreBindEmailRequest,
+    PreBindEmailResponse,
 };
 use crate::types::user::{RandomUserRequest, WxMiniLoginRequest, WxMiniLoginResponse};
 
@@ -26,6 +27,7 @@ use crate::types::user::{RandomUserRequest, WxMiniLoginRequest, WxMiniLoginRespo
     components(schemas(
         BindEmailRequest,
         BindEmailResponse,
+        ByUserIdResponse,
         FooItem,
         FooRequest,
         FooResponse,
