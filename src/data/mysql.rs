@@ -4,11 +4,8 @@ use derivative::Derivative;
 use serde::Deserialize;
 use sqlx::MySqlPool;
 use sqlx::mysql::MySqlPoolOptions;
-use tracing::error;
 use tracing::info;
 
-use crate::core::rest::AppError;
-use crate::errors;
 /// MySQL database configuration
 ///
 /// This struct holds all configuration parameters needed to establish
@@ -160,25 +157,6 @@ impl MysqlConf {
     }
 }
 
-impl Default for MysqlConf {
-    /// Creates a default MySQL configuration
-    ///
-    /// Returns a MysqlConf instance with sensible default values
-    /// suitable for development environments.
-    fn default() -> Self {
-        Self {
-            dsn: "mysql://username:password@localhost:3306/database".to_string(),
-            max_connections: 10,
-            slow_level: "info".to_string(),
-            lifetime_sec: 1800,      // 30 minutes
-            idle_sec: 600,           // 10 minutes
-            acquire_timeout_sec: 30, // 30 seconds
-            timeout_level: "warn".to_string(),
-            slow_threshold_mills: 2000, // 2 seconds
-        }
-    }
-}
-
 /// Database connection manager
 ///
 /// Wraps a MySQL connection pool and provides convenient access methods.
@@ -208,169 +186,5 @@ impl DbManager {
     /// This method transfers ownership of the pool to the caller.
     pub fn into_pool(self) -> MySqlPool {
         self.pool
-    }
-}
-
-pub(super) fn covert_error(err: sqlx::Error) -> AppError {
-    match err {
-        sqlx::Error::Configuration(e) => {
-            error!("db config error: {:?}", e);
-            errors::ErrDbConfiguration.clone()
-        }
-        sqlx::Error::InvalidArgument(info) => {
-            error!("db invalid argument: {}", info);
-            errors::ErrDbInvalidArgument.clone()
-        }
-        sqlx::Error::Database(database_error) => {
-            error!("database error: {}", database_error);
-            // Return different predefined errors based on the database error code
-            if let Some(code) = database_error.code() {
-                match code.as_ref() {
-                    "23000" | "23505" => {
-                        error!("database data conflict: {}", database_error);
-                        errors::ErrDbDataConflict.clone()
-                    }
-                    "22001" => {
-                        error!("database data length exceeded: {}", database_error);
-                        errors::ErrDbDataLengthExceeded.clone()
-                    }
-                    "22003" => {
-                        error!("database numeric range error: {}", database_error);
-                        errors::ErrDbNumericRange.clone()
-                    }
-                    "23502" => {
-                        error!("database required field missing: {}", database_error);
-                        errors::ErrDbRequiredField.clone()
-                    }
-                    "23503" => {
-                        error!("database foreign key constraint: {}", database_error);
-                        errors::ErrDbForeignKeyConstraint.clone()
-                    }
-                    "42S02" => {
-                        error!("database table not found: {}", database_error);
-                        errors::ErrDbTableNotFound.clone()
-                    }
-                    _ => {
-                        error!(
-                            "database generic error: code={}, message={}",
-                            code,
-                            database_error.message()
-                        );
-                        errors::ErrDbGeneric.clone()
-                    }
-                }
-            } else {
-                error!("database unknown error: {}", database_error);
-                errors::ErrDbUnknown.clone()
-            }
-        }
-        sqlx::Error::Io(e) => {
-            error!("database IO error: {}", e);
-            errors::ErrDbIo.clone()
-        }
-        sqlx::Error::Tls(e) => {
-            error!("database TLS error: {}", e);
-            errors::ErrDbTls.clone()
-        }
-        sqlx::Error::Protocol(e) => {
-            error!("database protocol error: {}", e);
-            errors::ErrDbProtocol.clone()
-        }
-        sqlx::Error::RowNotFound => {
-            error!("database row not found");
-            errors::ErrDbRowNotFound.clone()
-        }
-        sqlx::Error::TypeNotFound { type_name } => {
-            error!("database type not found: {}", type_name);
-            errors::ErrDbTypeNotFound.clone()
-        }
-        sqlx::Error::ColumnIndexOutOfBounds { index, len } => {
-            error!("database column index out of bounds: index={}, len={}", index, len);
-            errors::ErrDbColumnIndexOutOfBounds.clone()
-        }
-        sqlx::Error::ColumnNotFound(column) => {
-            error!("database column not found: {}", column);
-            errors::ErrDbColumnNotFound.clone()
-        }
-        sqlx::Error::ColumnDecode { index, source } => {
-            error!("database column decode error at index {}: {}", index, source);
-            errors::ErrDbColumnDecode.clone()
-        }
-        sqlx::Error::Encode(e) => {
-            error!("database encode error: {}", e);
-            errors::ErrDbEncode.clone()
-        }
-        sqlx::Error::Decode(e) => {
-            error!("database decode error: {}", e);
-            errors::ErrDbDecode.clone()
-        }
-        sqlx::Error::AnyDriverError(e) => {
-            error!("database driver error: {}", e);
-            errors::ErrDbDriver.clone()
-        }
-        sqlx::Error::PoolTimedOut => {
-            error!("database pool timeout");
-            errors::ErrDbPoolTimeout.clone()
-        }
-        sqlx::Error::PoolClosed => {
-            error!("database pool closed");
-            errors::ErrDbPoolClosed.clone()
-        }
-        sqlx::Error::WorkerCrashed => {
-            error!("database worker crashed");
-            errors::ErrDbWorkerCrashed.clone()
-        }
-        sqlx::Error::Migrate(e) => {
-            error!("database migration error: {}", e);
-            errors::ErrDbMigration.clone()
-        }
-        sqlx::Error::InvalidSavePointStatement => {
-            error!("database invalid savepoint statement");
-            errors::ErrDbInvalidSavePoint.clone()
-        }
-        sqlx::Error::BeginFailed => {
-            error!("database transaction begin failed");
-            errors::ErrDbBeginFailed.clone()
-        }
-        _ => {
-            error!("unknown database error: {}", err);
-            errors::ErrDbUnknownError.clone()
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use axum::http::StatusCode;
-    use axum::response::IntoResponse;
-
-    use super::*;
-
-    #[test]
-    fn test_covert_error_row_not_found() {
-        let err = sqlx::Error::RowNotFound;
-        let app_error = covert_error(err);
-
-        // Verify the error content through the IntoResponse conversion
-        let response = app_error.into_response();
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
-    }
-
-    #[test]
-    fn test_covert_error_pool_timeout() {
-        let err = sqlx::Error::PoolTimedOut;
-        let app_error = covert_error(err);
-
-        let response = app_error.into_response();
-        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
-    }
-
-    #[test]
-    fn test_covert_error_configuration() {
-        let err = sqlx::Error::Configuration("test config error".into());
-        let app_error = covert_error(err);
-
-        let response = app_error.into_response();
-        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 }
