@@ -143,11 +143,11 @@ impl UserService {
     /// * `req` - ByUserIdRequest containing user ID
     ///
     /// # Returns
-    /// * `Result<ByUserIdResponse>` - User information response
+    /// * `Result<ByUserIdResponse>` - User information response (without `salt`/`password`)
     pub async fn by_id(&self, req: ByUserIdRequest) -> Result<ByUserIdResponse> {
         let user = self.repo.get_by_id(req.id).await?;
-        info!("by id {} user {user:?}", req.id);
-        ok!(user)
+        info!("by id {}", req.id);
+        ok!(user.into())
     }
 
     /// Generates a random user
