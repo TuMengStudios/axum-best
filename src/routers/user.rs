@@ -49,6 +49,8 @@ pub fn routes(state: &AppState) -> Router<AppState> {
                 2,
             )),
         )
+        // `route_layer` wraps the route layers, so auth runs before each
+        // `with_login_quota` layer and supplies its Claims extension first.
         .route_layer(middleware::from_fn_with_state(state.clone(), auth::auth));
 
     Router::new()
