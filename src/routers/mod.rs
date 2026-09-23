@@ -28,7 +28,7 @@ pub fn app_routers(state: AppState) -> Router {
         .merge(user::routes(&state))
         .merge(foo::routes(&state))
         .merge(health::routes())
-        .fallback(fallback::not_implemented);
+        .fallback(fallback::not_found);
 
     let router = openapi::apply(router, &state);
 
