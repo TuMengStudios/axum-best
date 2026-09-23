@@ -5,6 +5,7 @@
 * [简体中文](README_ZH.md)
 * [development tools](dev.md)
 * [tech stack / crates](CRATES.md)
+* [技术栈 / crates](CRATES_ZH.md)
 
 ## Project Overview
 

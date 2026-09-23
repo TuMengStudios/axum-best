@@ -2,7 +2,8 @@
 
 * [english doc](README.md)
 * [开发工具](dev.md)
-* [技术栈 / crates](CRATES.md)
+* [tech stack / crates](CRATES.md)
+* [技术栈 / crates](CRATES_ZH.md)
 
 > 为最佳的 axum 开发体验而设计
 
