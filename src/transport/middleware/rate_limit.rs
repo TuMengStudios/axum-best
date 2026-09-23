@@ -137,3 +137,23 @@ where
         Box::pin(future)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use axum::body::Body;
+    use axum::http::Request;
+
+    use super::RateLimitLayer;
+    use crate::auth::Claims;
+
+    #[test]
+    fn login_quota_key_contains_authenticated_user_id() {
+        let mut request = Request::new(Body::empty());
+        request.extensions_mut().insert(Claims {
+            user_id: 42,
+            exp: 0,
+        });
+
+        assert_eq!((RateLimitLayer::user_key)(&request), "rate_user___42");
+    }
+}
