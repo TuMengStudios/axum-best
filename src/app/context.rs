@@ -90,6 +90,7 @@ impl AppContext {
 
         // Assemble dependencies: data-layer implementations -> inject into services -> build AppState -> build the HTTP server
         let user_service = UserService::new(
+            Arc::new(cfg.jwt.clone()),
             Arc::new(MySqlUserRepo::new(db_conn.clone())),
             Arc::new(RedisKvStore::new(redis_client.clone())),
             Arc::new(WechatApiRepo::new(&cfg.wechat)),
