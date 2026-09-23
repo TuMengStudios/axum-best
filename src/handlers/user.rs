@@ -11,6 +11,7 @@ use crate::models::user::UserInfo;
 use crate::types::user::BindEmailRequest;
 use crate::types::user::BindEmailResponse;
 use crate::types::user::ByUserIdRequest;
+use crate::types::user::ByUserIdResponse;
 use crate::types::user::PreBindEmailRequest;
 use crate::types::user::PreBindEmailResponse;
 use crate::types::user::RandomUserRequest;
@@ -81,11 +82,11 @@ pub async fn wechat_login(
     path = "/user/{id}",
     tag = "User",
     summary = "Get a user by ID",
-    description = "Returns detailed user information for the specified user ID. This endpoint requires a Bearer JWT.",
+    description = "Returns detailed user information for the specified user ID. This endpoint requires a Bearer JWT. Password material is never returned.",
     params(("id" = i64, Path, description = "User ID; must be greater than 0")),
     security(("bearerAuth" = [])),
     responses(
-        (status = 200, description = "User found", body = UserInfo),
+        (status = 200, description = "User found", body = ByUserIdResponse),
         (status = 400, description = "Invalid user ID format or value"),
         (status = 401, description = "Missing or invalid authentication"),
         (status = 404, description = "User not found")
@@ -94,7 +95,7 @@ pub async fn wechat_login(
 pub async fn user_by_id(
     State(state): State<AppState>,
     ValidPath(req): ValidPath<ByUserIdRequest>,
-) -> Result<UserInfo> {
+) -> Result<ByUserIdResponse> {
     info!("user by id {:?}", req);
     state.user_service.by_id(req).await
 }

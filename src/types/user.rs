@@ -95,7 +95,72 @@ pub struct ByUserIdRequest {
     pub id: i64,
 }
 
-pub type ByUserIdResponse = UserInfo;
+/// Response structure for `GET /user/{id}`.
+///
+/// Excludes sensitive fields (`salt`, `password`, `phone`) so the API never
+/// returns password material or contact PII to clients.
+#[derive(Serialize, Debug, utoipa::ToSchema)]
+pub struct ByUserIdResponse {
+    /// Unique identifier for the user
+    pub id: i64,
+    /// Display name of the user
+    pub nick_name: String,
+    /// URL or path to user's profile picture
+    pub avatar: String,
+    /// User's personal signature or bio
+    pub signature: String,
+    /// User's age
+    pub age: u8,
+    /// Timestamp when the user was created (Unix timestamp)
+    pub created_at: i64,
+    /// Timestamp when the user was last updated (Unix timestamp)
+    pub updated_at: i64,
+    /// Timestamp when the user was deleted (Unix timestamp, 0 if not deleted)
+    pub deleted_at: i64,
+    /// Account status, see [`UserInfo::STATUS_NORMAL`] / [`UserInfo::STATUS_DISABLED`]
+    pub status: i8,
+}
+
+impl From<UserInfo> for ByUserIdResponse {
+    fn from(user: UserInfo) -> Self {
+        Self {
+            id: user.id,
+            nick_name: user.nick_name,
+            avatar: user.avatar,
+            signature: user.signature,
+            age: user.age,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+            deleted_at: user.deleted_at,
+            status: user.status,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ByUserIdResponse;
+    use crate::models::user::UserInfo;
+
+    #[test]
+    fn by_user_id_response_omits_sensitive_fields() {
+        let user = UserInfo {
+            id: 42,
+            phone: "13800138000".to_string(),
+            salt: "super-secret-salt".to_string(),
+            password: "super-secret-hash".to_string(),
+            ..UserInfo::default()
+        };
+
+        let resp: ByUserIdResponse = user.into();
+        let json = serde_json::to_value(&resp).expect("serialize ByUserIdResponse");
+
+        assert!(json.get("salt").is_none(), "salt must not appear: {json}");
+        assert!(json.get("password").is_none(), "password hash must not appear: {json}");
+        assert!(json.get("phone").is_none(), "phone must not appear: {json}");
+        assert_eq!(json.get("id"), Some(&serde_json::json!(42)));
+    }
+}
 
 /// Request structure for getting random user
 #[derive(Deserialize, Debug, utoipa::IntoParams, utoipa::ToSchema)]
