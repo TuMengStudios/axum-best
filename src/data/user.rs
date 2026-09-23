@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::MySqlPool;
 use sqlx::QueryBuilder;
 
-use super::mysql::covert_error;
+use super::db_error::covert_error;
 use crate::core::rest::AppError;
 use crate::models::oauth::OAuthAccount;
 use crate::models::user::UserInfo;

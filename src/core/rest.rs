@@ -162,6 +162,53 @@ mod tests {
     }
 
     #[test]
+    fn test_database_conversion_keeps_io_cause() {
+        let err = crate::data::db_error::covert_error(sqlx::Error::Io(std::io::Error::other(
+            "connection reset",
+        )));
+
+        assert_eq!(err.err_no, 50210);
+        assert!(err.detail.as_deref().unwrap().contains("database I/O"));
+        assert!(
+            err.err
+                .as_ref()
+                .unwrap()
+                .to_string()
+                .contains("connection reset")
+        );
+        assert!(err.detail.as_deref().unwrap().contains("connection reset"));
+    }
+
+    #[test]
+    fn test_database_conversion_keeps_protocol_cause() {
+        let err = crate::data::db_error::covert_error(sqlx::Error::Protocol(
+            "unexpected packet".to_string(),
+        ));
+
+        assert_eq!(err.err_no, 50212);
+        assert!(err.detail.as_deref().unwrap().contains("database protocol"));
+        assert!(
+            err.err
+                .as_ref()
+                .unwrap()
+                .to_string()
+                .contains("unexpected packet")
+        );
+        assert!(err.detail.as_deref().unwrap().contains("unexpected packet"));
+    }
+
+    #[test]
+    fn test_database_conversion_keeps_column_context_and_cause() {
+        let err = crate::data::db_error::covert_error(sqlx::Error::ColumnNotFound(
+            "created_at".to_string(),
+        ));
+
+        assert_eq!(err.err_no, 50216);
+        assert_eq!(err.detail.as_deref(), Some("database column created_at lookup"));
+        assert!(err.err.as_ref().unwrap().to_string().contains("created_at"));
+    }
+
+    #[test]
     fn test_error_with_cause_is_logged() {
         let logs = capture_logs(|| {
             let _ =
@@ -178,7 +225,7 @@ mod tests {
     #[test]
     fn test_error_without_cause_is_not_logged() {
         let logs = capture_logs(|| {
-            let _ = AppError::new(StatusCode::NOT_FOUND, 50213, "Record Not Found").into_response();
+            let _ = crate::errors::ErrDbRowNotFound.clone().into_response();
         });
 
         assert!(logs.is_empty(), "plain errors must stay silent: {logs}");
@@ -197,6 +244,33 @@ mod tests {
 
         // The error response body does not contain a data field.
         assert_eq!(body, serde_json::json!({ "err_no": 14000, "err_msg": "Bad Request Params" }));
+    }
+
+    #[tokio::test]
+    async fn test_error_response_does_not_expose_cause_or_detail() {
+        let res = crate::errors::ErrDbGeneric
+            .with_cause(
+                sqlx::Error::Configuration("password=secret host=db.internal".into()),
+                "execute query against users table",
+            )
+            .into_response();
+
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(
+            body,
+            serde_json::json!({
+                "err_no": 50208,
+                "err_msg": "Server Internal Error"
+            })
+        );
+        let body_text = body.to_string();
+        assert!(!body_text.contains("password=secret"));
+        assert!(!body_text.contains("db.internal"));
+        assert!(!body_text.contains("users table"));
     }
 
     fn capture_logs(f: impl FnOnce()) -> String {

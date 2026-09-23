@@ -52,117 +52,119 @@ lazy_static! {
         AppError::new(StatusCode::NOT_IMPLEMENTED, 50000, "Not Implemented");
 }
 
-// Database specific errors
+// Database technical errors. The numeric error code identifies the failure
+// category for operators and clients; the message intentionally stays generic
+// so database details are never exposed through the API response.
 lazy_static! {
-    /// Database invalid argument error - internal server error for invalid database arguments
+    /// 50200: SQLx rejected an invalid database argument.
     pub static ref ErrDbInvalidArgument: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50200, "Server Internal Error");
 
-    /// Database configuration error - internal server error for database configuration issues
+    /// 50201: Database configuration or connection setup failed.
     pub static ref ErrDbConfiguration: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50201, "Server Internal Error");
 
-    /// Database data conflict error - conflict error for data constraint violations
+    /// 50202: The database rejected a write because of a data conflict.
     pub static ref ErrDbDataConflict: AppError =
-        AppError::new(StatusCode::CONFLICT, 50202, "Server Internal Error");
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50202, "Server Internal Error");
 
-    /// Database data length exceeded error - bad request for data exceeding length limits
+    /// 50203: Database rejected a value because its length exceeded a limit.
     pub static ref ErrDbDataLengthExceeded: AppError =
-        AppError::new(StatusCode::BAD_REQUEST, 50203, "Server Internal Error");
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50203, "Server Internal Error");
 
-    /// Database numeric range error - bad request for numeric value out of range
+    /// 50204: Database rejected a numeric value outside its supported range.
     pub static ref ErrDbNumericRange: AppError =
-        AppError::new(StatusCode::BAD_REQUEST, 50204, "Server Internal Error");
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50204, "Server Internal Error");
 
-    /// Database required field error - bad request for missing required fields
+    /// 50205: Database rejected a row because a required field was missing.
     pub static ref ErrDbRequiredField: AppError =
-        AppError::new(StatusCode::BAD_REQUEST, 50205, "Server Internal Error");
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50205, "Server Internal Error");
 
-    /// Database foreign key constraint error - bad request for foreign key violations
+    /// 50206: Database rejected a row because of a foreign-key constraint.
     pub static ref ErrDbForeignKeyConstraint: AppError =
-        AppError::new(StatusCode::BAD_REQUEST, 50206, "Server Internal Error");
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50206, "Server Internal Error");
 
-    /// Database table not found error - internal server error for missing database tables
+    /// 50207: A required database table was not found.
     pub static ref ErrDbTableNotFound: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50207, "Server Internal Error");
 
-    /// Database generic error - internal server error for general database failures
+    /// 50208: An uncategorized database operation failed.
     pub static ref ErrDbGeneric: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50208, "Server Internal Error");
 
-    /// Database unknown error - internal server error for unknown database issues
+    /// 50209: Database returned an error without a SQLSTATE.
     pub static ref ErrDbUnknown: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50209, "Server Internal Error");
 
-    /// Database I/O error - internal server error for database I/O operations
+    /// 50210: Database I/O failed.
     pub static ref ErrDbIo: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50210, "Server Internal Error");
 
-    /// Database TLS error - internal server error for TLS connection issues
+    /// 50211: Database TLS negotiation failed.
     pub static ref ErrDbTls: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50211, "Server Internal Error");
 
-    /// Database protocol error - internal server error for protocol violations
+    /// 50212: Database protocol handling failed.
     pub static ref ErrDbProtocol: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50212, "Server Internal Error");
 
-    /// Database row not found error - not found error for missing database records
+    /// 50213: An expected database row was not found.
     pub static ref ErrDbRowNotFound: AppError =
-        AppError::new(StatusCode::NOT_FOUND, 50213, "Record Not Found");
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50213, "Server Internal Error");
 
-    /// Database type not found error - internal server error for missing database types
+    /// 50214: A required database type was not found.
     pub static ref ErrDbTypeNotFound: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50214, "Server Internal Error");
 
-    /// Database column index out of bounds error - internal server error for invalid column indices
+    /// 50215: A database column index was outside the available range.
     pub static ref ErrDbColumnIndexOutOfBounds: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50215, "Server Internal Error");
 
-    /// Database column not found error - internal server error for missing columns
+    /// 50216: A required database column was not found.
     pub static ref ErrDbColumnNotFound: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50216, "Server Internal Error");
 
-    /// Database column decode error - internal server error for column data decoding failures
+    /// 50217: A database column value could not be decoded.
     pub static ref ErrDbColumnDecode: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50217, "Server Internal Error");
 
-    /// Database encode error - internal server error for data encoding failures
+    /// 50218: A value could not be encoded for the database.
     pub static ref ErrDbEncode: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50218, "Server Internal Error");
 
-    /// Database decode error - internal server error for data decoding failures
+    /// 50219: A database response value could not be decoded.
     pub static ref ErrDbDecode: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50219, "Server Internal Error");
 
-    /// Database driver error - internal server error for database driver issues
+    /// 50220: The database driver failed.
     pub static ref ErrDbDriver: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50220, "Server Internal Error");
 
-    /// Database pool timeout error - service unavailable for connection pool timeouts
+    /// 50221: Acquiring a database connection timed out.
     pub static ref ErrDbPoolTimeout: AppError =
-        AppError::new(StatusCode::SERVICE_UNAVAILABLE, 50221, "Server Internal Error");
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50221, "Server Internal Error");
 
-    /// Database pool closed error - service unavailable for closed connection pools
+    /// 50222: The database connection pool was closed.
     pub static ref ErrDbPoolClosed: AppError =
-        AppError::new(StatusCode::SERVICE_UNAVAILABLE, 50222, "Server Internal Error");
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50222, "Server Internal Error");
 
-    /// Database worker crashed error - internal server error for worker thread crashes
+    /// 50223: The database worker crashed.
     pub static ref ErrDbWorkerCrashed: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50223, "Server Internal Error");
 
-    /// Database migration error - internal server error for migration failures
+    /// 50224: A database migration failed.
     pub static ref ErrDbMigration: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50224, "Server Internal Error");
 
-    /// Database invalid save point error - internal server error for invalid save points
+    /// 50225: A database savepoint operation was invalid.
     pub static ref ErrDbInvalidSavePoint: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50225, "Server Internal Error");
 
-    /// Database begin failed error - internal server error for transaction start failures
+    /// 50226: A database transaction could not be started.
     pub static ref ErrDbBeginFailed: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50226, "Server Internal Error");
 
-    /// Database unknown error - internal server error for unknown database errors
+    /// 50227: An unclassified SQLx database error occurred.
     pub static ref ErrDbUnknownError: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50227, "Server Internal Error");
 }
@@ -172,4 +174,59 @@ lazy_static! {
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50500, "Server Internal Error");
     pub static ref ErrUnmarshalJSON: AppError =
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50501, "Server Internal Error");
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::body::to_bytes;
+    use axum::response::IntoResponse;
+    use serde_json::Value;
+    use std::collections::HashSet;
+
+    #[tokio::test]
+    async fn database_errors_use_one_safe_message_and_distinct_codes() {
+        let errors = [
+            &*super::ErrDbInvalidArgument,
+            &*super::ErrDbConfiguration,
+            &*super::ErrDbDataConflict,
+            &*super::ErrDbDataLengthExceeded,
+            &*super::ErrDbNumericRange,
+            &*super::ErrDbRequiredField,
+            &*super::ErrDbForeignKeyConstraint,
+            &*super::ErrDbTableNotFound,
+            &*super::ErrDbGeneric,
+            &*super::ErrDbUnknown,
+            &*super::ErrDbIo,
+            &*super::ErrDbTls,
+            &*super::ErrDbProtocol,
+            &*super::ErrDbTypeNotFound,
+            &*super::ErrDbColumnIndexOutOfBounds,
+            &*super::ErrDbColumnNotFound,
+            &*super::ErrDbColumnDecode,
+            &*super::ErrDbEncode,
+            &*super::ErrDbDecode,
+            &*super::ErrDbDriver,
+            &*super::ErrDbPoolTimeout,
+            &*super::ErrDbPoolClosed,
+            &*super::ErrDbWorkerCrashed,
+            &*super::ErrDbMigration,
+            &*super::ErrDbInvalidSavePoint,
+            &*super::ErrDbBeginFailed,
+            &*super::ErrDbUnknownError,
+        ];
+        let mut messages = HashSet::new();
+        let mut codes = HashSet::new();
+
+        for error in errors {
+            let response = error.clone().into_response();
+            let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            let body: Value = serde_json::from_slice(&body).unwrap();
+            messages.insert(body["err_msg"].as_str().unwrap().to_owned());
+            codes.insert(body["err_no"].as_i64().unwrap());
+        }
+
+        assert_eq!(messages.len(), 1);
+        assert_eq!(messages.into_iter().next().unwrap(), "Server Internal Error");
+        assert_eq!(codes.len(), errors.len());
+    }
 }
