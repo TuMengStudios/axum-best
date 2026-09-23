@@ -3,6 +3,7 @@ use std::sync::Arc;
 use tracing::debug;
 use tracing::info;
 
+use crate::auth::JwtConfig;
 use crate::core::Result;
 use crate::core::rest::AppError;
 use crate::errors::ErrUserAbnormal;
@@ -31,6 +32,7 @@ use crate::utils;
 /// concrete implementations are injected by the assembly layer (app::AppContext).
 #[derive(Clone)]
 pub struct UserService {
+    jwt: Arc<JwtConfig>,
     repo: Arc<dyn UserRepo>,
     kv: Arc<dyn KvStore>,
     wechat: Arc<dyn WechatRepo>,
@@ -39,11 +41,17 @@ pub struct UserService {
 impl UserService {
     /// Creates a service with injected repository implementations
     pub fn new(
+        jwt: Arc<JwtConfig>,
         repo: Arc<dyn UserRepo>,
         kv: Arc<dyn KvStore>,
         wechat: Arc<dyn WechatRepo>,
     ) -> UserService {
-        UserService { repo, kv, wechat }
+        UserService {
+            jwt,
+            repo,
+            kv,
+            wechat,
+        }
     }
 
     /// Loads a user for authentication and rejects soft-deleted or disabled accounts.
@@ -91,6 +99,9 @@ impl UserService {
 
     /// Handles WeChat mini-program login
     ///
+    /// Exchanges the WeChat code for a session, locates or creates the user, and
+    /// issues a Bearer JWT so subsequent authenticated requests succeed.
+    ///
     /// # Arguments
     /// * `req` - WxMiniLoginRequest containing WeChat login code
     ///
@@ -102,8 +113,10 @@ impl UserService {
         let user = self
             .get_or_create_wechat_user(&session.app_id, &session.open_id)
             .await?;
+        let token = self.jwt.generate_token(user.id)?;
         info!(user_id = user.id, "WeChat login succeeded");
         let resp = WxMiniLoginResponse {
+            token,
             nick_name: user.nick_name,
             avatar: user.avatar,
         };

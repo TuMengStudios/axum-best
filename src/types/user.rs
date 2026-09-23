@@ -17,9 +17,10 @@ pub struct WxMiniLoginRequest {
 }
 
 /// WeChat mini program login response
-#[allow(unused)]
 #[derive(Serialize, SmartDefault, utoipa::ToSchema)]
 pub struct WxMiniLoginResponse {
+    /// Bearer JWT to authenticate subsequent requests
+    pub token: String,
     /// Display name stored for the user
     pub nick_name: String,
     /// Avatar URL stored for the user
