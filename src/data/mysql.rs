@@ -156,35 +156,3 @@ impl MysqlConf {
         Ok(pool)
     }
 }
-
-/// Database connection manager
-///
-/// Wraps a MySQL connection pool and provides convenient access methods.
-/// This struct manages the lifecycle of database connections.
-pub struct DbManager {
-    pool: MySqlPool,
-}
-
-impl DbManager {
-    /// Creates a new DbManager with the given connection pool
-    ///
-    /// # Arguments
-    /// * `pool` - A MySQL connection pool to manage
-    pub fn new(pool: MySqlPool) -> Self {
-        Self { pool }
-    }
-
-    /// Returns a reference to the managed connection pool
-    ///
-    /// This method allows borrowing the pool without taking ownership.
-    pub fn pool(&self) -> &MySqlPool {
-        &self.pool
-    }
-
-    /// Consumes the DbManager and returns the underlying connection pool
-    ///
-    /// This method transfers ownership of the pool to the caller.
-    pub fn into_pool(self) -> MySqlPool {
-        self.pool
-    }
-}
