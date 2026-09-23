@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f5f0e5">
+    <title>Page Not Found · 404</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --paper: #fffdf7;
+            --cream: #f5f0e5;
+            --ink: #302d26;
+            --muted: #827969;
+            --line: rgba(48, 45, 38, .15);
+            --crust: #ad5934;
+            --berry: #b94c43;
+            --sage: #7f9665;
+            --warning: #e3ae4e;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            min-height: 100%;
+            margin: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: grid;
+            place-items: center;
+            padding: 48px 20px calc(48px + env(safe-area-inset-bottom));
+            overflow-x: hidden;
+            background-color: var(--cream);
+            background-image: linear-gradient(rgba(173, 89, 52, .07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(173, 89, 52, .07) 1px, transparent 1px),
+                repeating-linear-gradient(135deg, rgba(127, 150, 101, .12) 0 12px, transparent 12px 28px);
+            background-size: 82px 82px, 82px 82px, auto;
+            color: var(--ink);
+            font-family: "Avenir Next", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body::after {
+            position: fixed;
+            z-index: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            height: 19vh;
+            min-height: 130px;
+            content: "";
+            pointer-events: none;
+            border-top: 1px solid var(--line);
+            background: linear-gradient(180deg, rgba(255, 253, 247, .3), transparent 18px),
+                repeating-linear-gradient(90deg, rgba(173, 89, 52, .19) 0 34px, rgba(48, 45, 38, .14) 34px 68px);
+        }
+
+        main {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 1040px);
+            padding: 38px 42px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: linear-gradient(180deg, rgba(255, 253, 247, .82), rgba(255, 253, 247, .42)), var(--paper);
+            box-shadow: 0 24px 64px rgba(48, 45, 38, .16);
+            animation: enter 520ms cubic-bezier(.2, .8, .2, 1) both;
+        }
+
+        main::before {
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 10px;
+            content: "";
+            border-radius: 8px 8px 0 0;
+            background: repeating-linear-gradient(90deg, var(--berry) 0 24px, var(--paper) 24px 38px,
+                    var(--sage) 38px 62px, var(--paper) 62px 76px, var(--crust) 76px 100px, var(--paper) 100px 114px);
+        }
+
+        main::after {
+            position: absolute;
+            inset: 19px;
+            content: "";
+            pointer-events: none;
+            border: 1px dashed rgba(48, 45, 38, .14);
+            border-radius: 5px;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .masthead {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 22px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .stamp {
+            max-width: 230px;
+            padding-left: 12px;
+            color: var(--muted);
+            border-left: 2px solid rgba(185, 76, 67, .55);
+            font-size: 10px;
+            font-weight: 500;
+            line-height: 1.5;
+            text-align: right;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(250px, 1fr) minmax(300px, .95fr);
+            align-items: center;
+            gap: 36px;
+        }
+
+        .visual {
+            display: grid;
+            min-height: 300px;
+            place-items: center;
+        }
+
+        .bakery-map {
+            display: block;
+            width: 100%;
+            max-width: 410px;
+            height: auto;
+            overflow: visible;
+        }
+
+        .route {
+            stroke-dasharray: 8 10;
+            animation: route 4s linear infinite;
+        }
+
+        .loaf {
+            transform-origin: 158px 126px;
+            animation: loaf 3.8s ease-in-out infinite;
+        }
+
+        .steam {
+            transform-origin: center bottom;
+            animation: steam 3s ease-in-out infinite;
+        }
+
+        .steam.two {
+            animation-delay: 420ms;
+        }
+
+        .copy {
+            max-width: 460px;
+        }
+
+        .code {
+            margin: 0 0 9px;
+            color: var(--crust);
+            font-family: Georgia, "Times New Roman", "Songti SC", serif;
+            font-size: 92px;
+            font-weight: 700;
+            line-height: .95;
+            user-select: none;
+        }
+
+        .title {
+            margin: 0 0 13px;
+            font-family: "Songti SC", "SimSun", Georgia, serif;
+            font-size: 30px;
+            line-height: 1.35;
+        }
+
+        .message {
+            margin: 0;
+            color: var(--muted);
+            font-size: 16px;
+            line-height: 1.85;
+        }
+
+        .trace {
+            display: __TRACE_DISPLAY__;
+            margin-top: 26px;
+            padding-top: 11px;
+            border-top: 1px solid rgba(48, 45, 38, .11);
+            color: var(--muted);
+            font-size: 10px;
+            letter-spacing: .08em;
+            line-height: 1.5;
+            text-transform: uppercase;
+        }
+
+        .trace-id {
+            display: inline;
+            margin-left: 8px;
+            color: rgba(48, 45, 38, .7);
+            font-family: "Courier New", monospace;
+            font-size: 10px;
+            letter-spacing: .02em;
+            word-break: break-all;
+            text-transform: none;
+        }
+
+        .copyright {
+            margin-top: 22px;
+            color: rgba(48, 45, 38, .55);
+            font-size: 11px;
+            text-align: center;
+        }
+
+        @keyframes enter {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        @keyframes route {
+            to {
+                stroke-dashoffset: -36;
+            }
+        }
+
+        @keyframes loaf {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(-1deg);
+            }
+
+            50% {
+                transform: translateY(-6px) rotate(1deg);
+            }
+        }
+
+        @keyframes steam {
+
+            0%,
+            100% {
+                opacity: .18;
+                transform: translateY(2px) scaleY(.92);
+            }
+
+            50% {
+                opacity: .48;
+                transform: translateY(-7px) scaleY(1.08);
+            }
+        }
+
+        @media (max-width: 700px) {
+            body {
+                align-items: start;
+                padding: 22px 14px calc(28px + env(safe-area-inset-bottom));
+            }
+
+            main {
+                padding: 28px 22px 24px;
+            }
+
+            main::after {
+                inset: 15px;
+            }
+
+            .masthead {
+                margin-bottom: 12px;
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .visual {
+                min-height: 215px;
+            }
+
+            .bakery-map {
+                max-width: 280px;
+            }
+
+            .copy {
+                max-width: none;
+                text-align: center;
+            }
+
+            .code {
+                font-size: 64px;
+            }
+
+            .title {
+                font-size: 24px;
+            }
+
+            .message {
+                font-size: 15px;
+            }
+
+            .trace {
+                text-align: left;
+            }
+        }
+
+        @media (max-width: 390px) {
+            main {
+                padding-right: 17px;
+                padding-left: 17px;
+            }
+
+            .stamp {
+                max-width: 190px;
+                padding-left: 8px;
+                font-size: 9px;
+            }
+
+            .title {
+                font-size: 22px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 1ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main aria-labelledby="page-title">
+        <div class="content">
+            <div class="masthead" aria-hidden="true"><span>TMStudios</span><span class="stamp">No LLM has cited this
+                    link yet</span></div>
+            <div class="layout">
+                <div class="visual" aria-hidden="true">
+                    <svg class="bakery-map" viewBox="0 0 320 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M38 210H282" stroke="var(--ink)" stroke-width="10" stroke-linecap="round"
+                            opacity=".08" />
+                        <path class="route" d="M54 186C92 136 116 210 150 152C181 99 220 140 250 74"
+                            stroke="var(--crust)" stroke-width="4" stroke-linecap="round" />
+                        <circle cx="54" cy="186" r="11" fill="var(--sage)" />
+                        <circle cx="250" cy="74" r="11" fill="var(--berry)" />
+                        <path
+                            d="M250 54C235 54 224 66 224 80C224 101 250 126 250 126C250 126 276 101 276 80C276 66 265 54 250 54Z"
+                            fill="var(--berry)" opacity=".14" />
+                        <path
+                            d="M86 88C102 48 147 34 193 48C222 57 240 77 242 109C245 151 210 181 160 181C105 181 67 148 77 110C79 102 82 95 86 88Z"
+                            fill="#ece3ce" />
+                        <g class="loaf">
+                            <path
+                                d="M84 126C84 92 113 69 158 69C204 69 233 92 233 126C233 159 205 181 158 181C112 181 84 159 84 126Z"
+                                fill="var(--crust)" />
+                            <path
+                                d="M92 126C92 98 118 80 158 80C199 80 225 98 225 126C225 153 200 171 158 171C117 171 92 153 92 126Z"
+                                fill="var(--warning)" />
+                            <path d="M110 110C124 96 140 92 154 101M153 96C171 87 191 91 202 106" stroke="#8c4a26"
+                                stroke-width="5" stroke-linecap="round" opacity=".4" />
+                            <path d="M119 133Q132 119 145 133M171 133Q184 119 197 133M144 149Q159 164 175 149"
+                                stroke="var(--ink)" stroke-width="4" stroke-linecap="round" opacity=".58" />
+                        </g>
+                        <path class="steam" d="M118 52C109 39 127 33 117 19M185 51C176 36 197 31 187 16"
+                            stroke="var(--crust)" stroke-width="4" stroke-linecap="round" opacity=".25" />
+                        <circle cx="56" cy="219" r="4" fill="var(--crust)" opacity=".28" />
+                        <circle cx="82" cy="204" r="3" fill="var(--crust)" opacity=".2" />
+                        <circle cx="248" cy="205" r="3" fill="var(--crust)" opacity=".2" />
+                    </svg>
+                </div>
+                <section class="copy">
+                    <div class="code" aria-hidden="true">404</div>
+                    <h1 class="title" id="page-title">This loaf isn't ready yet</h1>
+                    <p class="message">The page you're looking for isn't here. The address may be incorrect, or it may
+                        have been taken off the menu.</p>
+                    <div class="trace"><span>Request ID</span><span class="trace-id">__TRACE_ID__</span></div>
+                </section>
+            </div>
+            <footer class="copyright">&copy; <span id="currentYear"></span> TMStudios</footer>
+        </div>
+    </main>
+    <script>document.getElementById('currentYear').textContent = new Date().getFullYear();</script>
+</body>
+
+</html>
