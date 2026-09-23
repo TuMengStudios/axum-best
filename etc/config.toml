@@ -59,6 +59,8 @@ format = "json"
 # endpoint = "http://localhost:4317"
 # OpenTelemetry tracer name. Leave unset or empty to use "axum-best".
 tracer_name = "my-app"
+# Fraction of traces to sample, from 0.0 (none) to 1.0 (all). Defaults to 0.05.
+# sample_ratio = 0.1
 
 
 [metrics]
