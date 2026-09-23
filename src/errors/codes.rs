@@ -21,6 +21,10 @@ lazy_static! {
     /// enforce their own budgets)
     pub static ref ErrRequestTimeout: AppError =
         AppError::new(StatusCode::REQUEST_TIMEOUT, 40800, "Request Timeout");
+
+    /// Method not allowed - the route exists but does not support the request method
+    pub static ref ErrMethodNotAllowed: AppError =
+        AppError::new(StatusCode::METHOD_NOT_ALLOWED, 40500, "Method Not Allowed");
 }
 
 lazy_static! {

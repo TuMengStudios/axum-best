@@ -6,6 +6,21 @@ use tracing::Span;
 use tracing::warn;
 use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 
+use crate::core::rest::AppError;
+use crate::errors::ErrMethodNotAllowed;
+
+/// Fallback handler for a known route requested with an unsupported method.
+pub(super) async fn method_not_allowed(req: Request) -> AppError {
+    warn!(
+        method = %req.method(),
+        path = %req.uri().path(),
+        query = req.uri().query().unwrap_or(""),
+        "fallback hit: method not allowed"
+    );
+
+    ErrMethodNotAllowed.clone()
+}
+
 /// Fallback handler for any unmatched route: logs the request and renders a
 /// self-contained HTML `404` page (HTTP status 404). The trace id attached
 /// to the current span by the OpenTelemetry middleware is echoed into the
