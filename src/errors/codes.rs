@@ -47,6 +47,10 @@ lazy_static! {
 }
 
 lazy_static! {
+    /// Not found - the requested route does not exist
+    pub static ref ErrNotFound: AppError =
+        AppError::new(StatusCode::NOT_FOUND, 40400, "Not Found");
+
     /// Not implemented - requested feature is not implemented
     pub static ref ErrNotImplemented: AppError =
         AppError::new(StatusCode::NOT_IMPLEMENTED, 50000, "Not Implemented");

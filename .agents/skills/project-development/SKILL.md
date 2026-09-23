@@ -75,7 +75,7 @@ and details are server-side only and must not appear in responses.
 
 - Reuse errors from `src/errors/codes.rs`; clone static values.
 - Add new errors there with a unique code, correct status, and safe message.
-- Preserve current code families: `10000` success, `14000` validation, `204xx` auth/user, `40800` timeout, `42900` rate limit, `501xx` Redis, `502xx` database, `505xx` WeChat/JSON, `50000` not implemented.
+- Preserve current code families: `10000` success, `14000` validation, `204xx` auth/user, `40400` not found, `40800` timeout, `42900` rate limit, `501xx` Redis, `502xx` database, `505xx` WeChat/JSON, `50000` not implemented.
 - Use `with_cause` for safe server-side context and `covert_error` for SQLx failures.
 - Validation errors use `14000`.
 - Test status, envelope, error code, and absence of internal details.
