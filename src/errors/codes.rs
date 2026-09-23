@@ -21,6 +21,10 @@ lazy_static! {
     /// enforce their own budgets)
     pub static ref ErrRequestTimeout: AppError =
         AppError::new(StatusCode::REQUEST_TIMEOUT, 40800, "Request Timeout");
+
+    /// Method not allowed - the route exists but does not support the request method
+    pub static ref ErrMethodNotAllowed: AppError =
+        AppError::new(StatusCode::METHOD_NOT_ALLOWED, 40500, "Method Not Allowed");
 }
 
 lazy_static! {
@@ -47,6 +51,10 @@ lazy_static! {
 }
 
 lazy_static! {
+    /// Not found - the requested route does not exist
+    pub static ref ErrNotFound: AppError =
+        AppError::new(StatusCode::NOT_FOUND, 40400, "Not Found");
+
     /// Not implemented - requested feature is not implemented
     pub static ref ErrNotImplemented: AppError =
         AppError::new(StatusCode::NOT_IMPLEMENTED, 50000, "Not Implemented");
