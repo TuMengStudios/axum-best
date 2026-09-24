@@ -3,7 +3,8 @@ use std::time::Duration;
 use bb8::{ManageConnection, Pool};
 use derivative::Derivative;
 use redis::{Client, ErrorKind, IntoConnectionInfo, RedisError};
-use serde::Deserialize;
+#[rustfmt::skip]
+use serde::{Deserialize};
 use tracing::info;
 
 /// Asynchronous Redis connection pool (bb8, the tokio version of r2d2)

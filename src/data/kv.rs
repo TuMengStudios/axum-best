@@ -3,7 +3,8 @@ use crate::data::cache::RedisPool;
 use crate::errors;
 use crate::repos::kv::KvStore;
 use async_trait::async_trait;
-use bb8::PooledConnection;
+#[rustfmt::skip]
+use bb8::{PooledConnection};
 use redis::{AsyncCommands, FromRedisValue, ToSingleRedisArg};
 
 /// KV store implementation backed by Redis (bb8 async connection pool)
