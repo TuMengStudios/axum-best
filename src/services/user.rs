@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
+use redis_macros::{FromRedisValue, ToRedisArgs};
+use serde::{Deserialize, Serialize};
 use tracing::debug;
 use tracing::info;
 
 use crate::auth::JwtConfig;
 use crate::core::Result;
 use crate::core::rest::AppError;
+use crate::data::kv::RedisKvStore;
 use crate::errors::ErrUserAbnormal;
 use crate::models::oauth::OAuthAccount;
 use crate::models::user::UserInfo;
@@ -25,16 +28,22 @@ use crate::types::user::WxMiniLoginRequest;
 use crate::types::user::WxMiniLoginResponse;
 use crate::utils;
 
+#[derive(Deserialize, FromRedisValue, Serialize, ToRedisArgs)]
+struct BindEmailCode {
+    email: String,
+    valid_code: String,
+}
+
 /// User service for handling user-related operations
 ///
-/// Depends only on repository traits (`Arc<dyn UserRepo>` / `Arc<dyn KvStore>`) and is
+/// Depends on repository abstractions for user data and the Redis data implementation for KV writes, and is
 /// unaware of the underlying storage; mocks can be injected in unit tests, while the
 /// concrete implementations are injected by the assembly layer (app::AppContext).
 #[derive(Clone)]
 pub struct UserService {
     jwt: Arc<JwtConfig>,
     repo: Arc<dyn UserRepo>,
-    kv: Arc<dyn KvStore>,
+    kv: Arc<RedisKvStore>,
     wechat: Arc<dyn WechatRepo>,
 }
 
@@ -43,7 +52,7 @@ impl UserService {
     pub fn new(
         jwt: Arc<JwtConfig>,
         repo: Arc<dyn UserRepo>,
-        kv: Arc<dyn KvStore>,
+        kv: Arc<RedisKvStore>,
         wechat: Arc<dyn WechatRepo>,
     ) -> UserService {
         UserService {
@@ -89,11 +98,19 @@ impl UserService {
     ///
     /// # Returns
     /// * `Result<PreBindEmailResponse>` - Response indicating success
-    pub async fn pre_bind_email(&self, req: PreBindEmailRequest) -> Result<PreBindEmailResponse> {
-        let key = format!("bind_email_{}", req.email);
+    pub async fn pre_bind_email(
+        &self,
+        user_id: i64,
+        req: PreBindEmailRequest,
+    ) -> Result<PreBindEmailResponse> {
+        const VALID_CODE_TTL_SECS: u64 = 300;
+        let key = format!("bind_email:{user_id}");
         let valid_code = utils::gen_valid_code(5);
-        info!("valid_code {}", valid_code);
-        self.kv.set(&key, &valid_code).await?;
+        let value = BindEmailCode {
+            email: req.email,
+            valid_code,
+        };
+        self.kv.set_ex(&key, value, VALID_CODE_TTL_SECS).await?;
         ok!(PreBindEmailResponse::default())
     }
 
@@ -130,8 +147,19 @@ impl UserService {
     ///
     /// # Returns
     /// * `Result<BindEmailResponse>` - Response indicating successful binding
-    pub async fn bind_email(&self, req: BindEmailRequest) -> Result<BindEmailResponse> {
+    pub async fn bind_email(
+        &self,
+        user_id: i64,
+        req: BindEmailRequest,
+    ) -> Result<BindEmailResponse> {
         info!("bind email {}", req.email);
+        let code_key = format!("bind_email:{user_id}");
+        let code: BindEmailCode = self.kv.get(&code_key).await?;
+        if code.email != req.email || code.valid_code != req.valid_code {
+            return Err(crate::errors::ErrBadRequest.clone());
+        }
+        self.kv.del(&code_key).await?;
+
         let key = format!("user_{}", req.email);
         self.kv.set(&key, "").await?;
         ok!(BindEmailResponse::default())

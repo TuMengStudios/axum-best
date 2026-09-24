@@ -3,9 +3,24 @@ use crate::data::cache::RedisPool;
 use crate::errors;
 use crate::repos::kv::KvStore;
 use async_trait::async_trait;
-use redis::AsyncCommands;
+use bb8::PooledConnection;
+use redis::{AsyncCommands, FromRedisValue, ToSingleRedisArg};
 
 /// KV store implementation backed by Redis (bb8 async connection pool)
+///
+/// Typed values can use `redis-macros` to store one JSON string per Redis key:
+///
+/// ```rust,ignore
+/// use redis_macros::{FromRedisValue, ToRedisArgs};
+/// use serde::{Deserialize, Serialize};
+///
+/// #[derive(Serialize, Deserialize, FromRedisValue, ToRedisArgs)]
+/// struct Session {
+///     user_id: i64,
+/// }
+///
+/// redis_store.set("session:42", Session { user_id: 42 }).await?;
+/// ```
 pub struct RedisKvStore {
     pool: RedisPool,
 }
@@ -14,45 +29,57 @@ impl RedisKvStore {
     pub fn new(pool: RedisPool) -> RedisKvStore {
         RedisKvStore { pool }
     }
+
+    async fn get_connection(
+        &self,
+    ) -> Result<PooledConnection<'_, crate::data::cache::RedisConnectionManager>, AppError> {
+        self.pool
+            .get()
+            .await
+            .map_err(|err| errors::ErrRedisClient.with_cause(err, "get redis connection"))
+    }
 }
 
 #[async_trait]
 impl KvStore for RedisKvStore {
-    /// Writes a key/value pair
-    async fn set(&self, key: &str, value: &str) -> Result<(), AppError> {
-        let mut conn = self
-            .pool
-            .get()
-            .await
-            .map_err(|err| errors::ErrRedisClient.with_cause(err, "get redis connection"))?;
+    async fn set<T>(&self, key: &str, value: T) -> Result<(), AppError>
+    where
+        T: ToSingleRedisArg + Send + Sync,
+    {
+        let mut conn = self.get_connection().await?;
         let _: () = conn
             .set(key, value)
             .await
-            .map_err(|err| errors::ErrRedisClient.with_cause(err, "set redis key"))?;
+            .map_err(|err| errors::ErrRedisClient.with_cause(err, "set redis value"))?;
         Ok(())
     }
 
-    /// Reads the value for a key, returning None when the key does not exist
-    async fn get(&self, key: &str) -> Result<Option<String>, AppError> {
-        let mut conn = self
-            .pool
-            .get()
+    async fn set_ex<T>(&self, key: &str, value: T, seconds: u64) -> Result<(), AppError>
+    where
+        T: ToSingleRedisArg + Send + Sync,
+    {
+        let mut conn = self.get_connection().await?;
+        let _: () = conn
+            .set_ex(key, value, seconds)
             .await
-            .map_err(|err| errors::ErrRedisClient.with_cause(err, "get redis connection"))?;
-        let value: Option<String> = conn
-            .get(key)
+            .map_err(|err| errors::ErrRedisClient.with_cause(err, "set redis value with expiry"))?;
+        Ok(())
+    }
+
+    /// Reads the value for a key. Missing keys and deserialization failures are errors.
+    async fn get<T>(&self, key: &str) -> Result<T, AppError>
+    where
+        T: FromRedisValue,
+    {
+        let mut conn = self.get_connection().await?;
+        conn.get::<_, T>(key)
             .await
-            .map_err(|err| errors::ErrRedisClient.with_cause(err, "get redis key"))?;
-        Ok(value)
+            .map_err(|err| errors::ErrRedisClient.with_cause(err, "get redis key"))
     }
 
     /// Deletes a key
     async fn del(&self, key: &str) -> Result<(), AppError> {
-        let mut conn = self
-            .pool
-            .get()
-            .await
-            .map_err(|err| errors::ErrRedisClient.with_cause(err, "get redis connection"))?;
+        let mut conn = self.get_connection().await?;
         let _: () = conn
             .del(key)
             .await

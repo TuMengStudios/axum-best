@@ -3,6 +3,7 @@ use axum::extract::State;
 use tracing::debug;
 use tracing::info;
 
+use crate::auth::Claims;
 use crate::core::Result;
 use crate::core::state::AppState;
 use crate::core::valid::ValidJson;
@@ -43,10 +44,11 @@ use crate::types::user::WxMiniLoginResponse;
 )]
 pub async fn bind_email(
     State(state): State<AppState>,
+    Claims { user_id, .. }: Claims,
     ValidJson(req): ValidJson<BindEmailRequest>,
 ) -> Result<BindEmailResponse> {
     info!("user email: {req:?}");
-    state.user_service.bind_email(req).await
+    state.user_service.bind_email(user_id, req).await
 }
 
 /// Handles WeChat mini-program login
@@ -123,10 +125,11 @@ pub async fn user_by_id(
 )]
 pub async fn pre_bind_email(
     State(state): State<AppState>,
+    Claims { user_id, .. }: Claims,
     ValidJson(req): ValidJson<PreBindEmailRequest>,
 ) -> Result<PreBindEmailResponse> {
     info!("user {}", req.email);
-    state.user_service.pre_bind_email(req).await
+    state.user_service.pre_bind_email(user_id, req).await
 }
 
 #[utoipa::path(

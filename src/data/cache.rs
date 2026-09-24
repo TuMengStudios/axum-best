@@ -1,13 +1,49 @@
 use std::time::Duration;
 
-use bb8_redis::RedisConnectionManager;
-use bb8_redis::bb8;
+use bb8::{ManageConnection, Pool};
 use derivative::Derivative;
+use redis::{Client, ErrorKind, IntoConnectionInfo, RedisError};
 use serde::Deserialize;
 use tracing::info;
 
 /// Asynchronous Redis connection pool (bb8, the tokio version of r2d2)
-pub type RedisPool = bb8::Pool<RedisConnectionManager>;
+pub type RedisPool = Pool<RedisConnectionManager>;
+
+/// Redis connection manager for the bb8 connection pool.
+#[derive(Clone, Debug)]
+pub struct RedisConnectionManager {
+    client: Client,
+}
+
+impl RedisConnectionManager {
+    /// Creates a manager from a Redis connection URL.
+    pub fn new<T: IntoConnectionInfo>(info: T) -> Result<Self, RedisError> {
+        Ok(Self {
+            client: Client::open(info.into_connection_info()?)?,
+        })
+    }
+}
+
+impl ManageConnection for RedisConnectionManager {
+    type Connection = redis::aio::MultiplexedConnection;
+    type Error = RedisError;
+
+    async fn connect(&self) -> Result<Self::Connection, Self::Error> {
+        self.client.get_multiplexed_async_connection().await
+    }
+
+    async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
+        let pong: String = redis::cmd("PING").query_async(conn).await?;
+        match pong.as_str() {
+            "PONG" => Ok(()),
+            _ => Err((ErrorKind::Extension, "ping request").into()),
+        }
+    }
+
+    fn has_broken(&self, _: &mut Self::Connection) -> bool {
+        false
+    }
+}
 
 /// Redis configuration structure for connecting to Redis server
 ///
@@ -56,7 +92,7 @@ impl RedisConf {
     pub async fn init_pool(&self) -> anyhow::Result<RedisPool> {
         let manager = RedisConnectionManager::new(self.url.as_str())
             .map_err(|err| anyhow::anyhow!("build redis client error {}", err))?;
-        let pool = bb8::Pool::builder()
+        let pool = Pool::builder()
             .max_size(self.max_size)
             .max_lifetime(Some(Duration::from_secs(self.lifetime_secs)))
             .min_idle(Some(self.min_idle))
