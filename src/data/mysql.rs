@@ -9,12 +9,6 @@ use sqlx::MySqlPool;
 use sqlx::mysql::MySqlPoolOptions;
 use tracing::info;
 
-/// Matches the userinfo section of a DSN: `scheme://user:password@`
-static DSN_PASSWORD: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<prefix>[a-zA-Z][a-zA-Z0-9+.-]*://[^:/?#@]*):[^/?#]*@")
-        .expect("dsn masking regex is valid")
-});
-
 /// MySQL database configuration
 ///
 /// This struct holds all configuration parameters needed to establish
@@ -141,6 +135,12 @@ impl MysqlConf {
     /// readable for diagnostics while ensuring the password cannot leak
     /// into logs or error messages.
     fn masked_dsn(&self) -> String {
+        // Matches the userinfo section of a DSN: `scheme://user:password@`
+        static DSN_PASSWORD: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"^(?P<prefix>[a-zA-Z][a-zA-Z0-9+.-]*://[^:/?#@]*):[^/?#]*@")
+                .expect("dsn masking regex is valid")
+        });
+
         DSN_PASSWORD
             .replace(&self.dsn, "${prefix}:***@")
             .into_owned()
