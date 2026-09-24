@@ -29,9 +29,7 @@ impl RedisKvStore {
         RedisKvStore { pool }
     }
 
-    async fn get_connection(
-        &self,
-    ) -> Result<PooledConnection<'_, crate::data::cache::RedisConnectionManager>, AppError> {
+    async fn get_connection(&self) -> Result<PooledConnection<'_, redis::Client>, AppError> {
         self.pool
             .get()
             .await

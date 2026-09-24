@@ -2927,6 +2927,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5dfe20977fe93830c0e9817a16fbf1ed1cfd8d4bba366087a1841d2c6033c251"
 dependencies = [
  "arcstr",
+ "bb8",
  "bytes",
  "cfg-if",
  "combine",
