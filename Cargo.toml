@@ -17,7 +17,6 @@ members = [
     "crates/gitver",
     "crates/nextid",
     "crates/noworkers",
-    "crates/redis_derive",
 ]
 
 [workspace.dependencies]
