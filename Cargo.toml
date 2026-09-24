@@ -5,19 +5,15 @@ edition = "2024"
 description = "For the optimal axum development experience"
 authors = ["xx 2356450144@qq.com"]
 keywords = [
-    "Optimal Axum Development Experience",
-    "Axum Development",
-    "Rust Web Framework",
+  "Optimal Axum Development Experience",
+  "Axum Development",
+  "Rust Web Framework",
 ]
 license = "MIT"
 readme = "README.md"
 
 [workspace]
-members = [
-    "crates/gitver",
-    "crates/nextid",
-    "crates/noworkers",
-]
+members = ["crates/gitver", "crates/nextid", "crates/noworkers"]
 
 [workspace.dependencies]
 thiserror = { version = "2" }
@@ -30,22 +26,22 @@ async-trait = { version = "0.1" }
 human-panic = { version = "2.0.3", features = ["color"] }
 axum = { version = "0.8.6", features = ["default", "macros", "query"] }
 clap = { version = "4.4.6", features = [
-    "derive",
-    "wrap_help",
-    "env",
-    "string",
-    "default",
+  "derive",
+  "wrap_help",
+  "env",
+  "string",
+  "default",
 ] }
 toml = { version = "0.9.7", features = ["default"] }
 anyhow = { version = "1.0.100", features = ["default"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.145", features = ["default"] }
-jsonwebtoken = {version = "9.3.1"}
+jsonwebtoken = { version = "9.3.1" }
 sqlx = { version = "0.8.6", features = [
-    "sqlx-mysql",
-    "mysql",
-    "chrono",
-    "runtime-tokio",
+  "sqlx-mysql",
+  "mysql",
+  "chrono",
+  "runtime-tokio",
 ] }
 tracing = { workspace = true, features = ["attributes"] }
 tracing-appender = { version = "0.2.3" }
@@ -64,12 +60,12 @@ validator = { version = "0.20.0", features = ["derive"] }
 lazy_static = { version = "1.5.0", features = ["spin"] }
 derivative = { version = "2.1.3" }
 tower-http = { version = "0.6.6", features = [
-    "trace",
-    "compression-full",
-    "decompression-full",
-    "cors",
-    "limit",
-    "timeout",
+  "trace",
+  "compression-full",
+  "decompression-full",
+  "cors",
+  "limit",
+  "timeout",
 ] }
 tower = { version = "0.5.2", features = ["timeout", "tracing", "util"] }
 governor = { version = "0.10" }
@@ -82,7 +78,10 @@ sha2 = { version = "0.10.9" }
 sha1 = { version = "0.10.6" }
 md-5 = { version = "0.10.6" }
 digest = { version = "0.10.7" }
-reqwest = { version = "0.12.23", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12.23", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }
 local-ip-address = { version = "0.6.5" }
 gitver = { path = "crates/gitver" }
 noworkers = { path = "crates/noworkers" }
