@@ -19,11 +19,11 @@ indent_size = 2
 [*.{json,sql}]
 indent_size = 4
 
-[*.toml]
-indent_size = 4
-
 [{Dockerfile,Dockerfile.*}]
 indent_size = 4
+
+[Cargo.toml]
+indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false

@@ -222,8 +222,8 @@ url = "redis://127.0.0.1:6379/10"
 # Maximum lifetime of connections in the pool in seconds
 # This determines how long a connection can remain in the pool before being closed
 # and replaced with a new connection. Helps prevent stale connections.
-# Recommended: 30-300 seconds depending on application requirements
-lifetime_secs = 30
+# Recommended: 300-3600 seconds depending on application requirements
+lifetime_secs = 300
 
 # Maximum number of connections in the pool
 # This limits the total number of connections that can be created and maintained
