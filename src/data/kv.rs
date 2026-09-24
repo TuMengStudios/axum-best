@@ -1,8 +1,6 @@
 use crate::core::rest::AppError;
 use crate::data::cache::RedisPool;
 use crate::errors;
-use crate::repos::kv::KvStore;
-use async_trait::async_trait;
 #[rustfmt::skip]
 use bb8::{PooledConnection};
 use redis::{AsyncCommands, FromRedisValue, ToSingleRedisArg};
@@ -41,9 +39,8 @@ impl RedisKvStore {
     }
 }
 
-#[async_trait]
-impl KvStore for RedisKvStore {
-    async fn set<T>(&self, key: &str, value: T) -> Result<(), AppError>
+impl RedisKvStore {
+    pub async fn set<T>(&self, key: &str, value: T) -> Result<(), AppError>
     where
         T: ToSingleRedisArg + Send + Sync,
     {
@@ -55,7 +52,7 @@ impl KvStore for RedisKvStore {
         Ok(())
     }
 
-    async fn set_ex<T>(&self, key: &str, value: T, seconds: u64) -> Result<(), AppError>
+    pub async fn set_ex<T>(&self, key: &str, value: T, seconds: u64) -> Result<(), AppError>
     where
         T: ToSingleRedisArg + Send + Sync,
     {
@@ -68,7 +65,7 @@ impl KvStore for RedisKvStore {
     }
 
     /// Reads the value for a key. Missing keys and deserialization failures are errors.
-    async fn get<T>(&self, key: &str) -> Result<T, AppError>
+    pub async fn get<T>(&self, key: &str) -> Result<T, AppError>
     where
         T: FromRedisValue,
     {
@@ -79,7 +76,7 @@ impl KvStore for RedisKvStore {
     }
 
     /// Deletes a key
-    async fn del(&self, key: &str) -> Result<(), AppError> {
+    pub async fn del(&self, key: &str) -> Result<(), AppError> {
         let mut conn = self.get_connection().await?;
         let _: () = conn
             .del(key)

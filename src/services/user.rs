@@ -13,7 +13,6 @@ use crate::errors::ErrUserAbnormal;
 use crate::models::oauth::OAuthAccount;
 use crate::models::user::UserInfo;
 use crate::ok;
-use crate::repos::kv::KvStore;
 use crate::repos::user::UserRepo;
 use crate::repos::wechat::WechatRepo;
 use crate::types::user::BindEmailRequest;
