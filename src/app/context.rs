@@ -79,7 +79,7 @@ impl AppContext {
             .mysql
             .init_conn()
             .await
-            .map_err(|err| anyhow::anyhow!("build mysql connect pool error {}", err))?;
+            .map_err(|err| anyhow::anyhow!("build mysql connect pool error: {:#}", err))?;
 
         // build cache client
         let redis_client = cfg
