@@ -214,7 +214,11 @@
         }
 
         .copyright {
-            margin-top: 22px;
+            position: fixed;
+            z-index: 1;
+            right: 0;
+            bottom: calc(10px + env(safe-area-inset-bottom));
+            left: 0;
             color: rgba(48, 45, 38, .55);
             font-size: 11px;
             text-align: center;
@@ -394,9 +398,9 @@
                     <div class="trace"><span>Request ID</span><span class="trace-id">__TRACE_ID__</span></div>
                 </section>
             </div>
-            <footer class="copyright">&copy; <span id="currentYear"></span> TMStudios</footer>
         </div>
     </main>
+    <footer class="copyright">&copy; <span id="currentYear"></span> TMStudios</footer>
     <script>document.getElementById('currentYear').textContent = new Date().getFullYear();</script>
 </body>
 
