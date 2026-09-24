@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         Err(e) => {
-            println!("❌ Database connection failed: {}", e);
+            println!("❌ Database connection failed: {:#}", e);
             println!("Please check your MySQL configuration in etc/config.toml");
         }
     }

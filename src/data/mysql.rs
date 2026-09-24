@@ -1,6 +1,9 @@
+use std::sync::LazyLock;
 use std::time::Duration;
 
+use anyhow::Context;
 use derivative::Derivative;
+use regex::Regex;
 use serde::Deserialize;
 use sqlx::MySqlPool;
 use sqlx::mysql::MySqlPoolOptions;
@@ -125,6 +128,23 @@ impl MysqlConf {
     fn get_slow_threshold(&self) -> Duration {
         Duration::from_millis(self.slow_threshold_mills)
     }
+
+    /// Returns the DSN with the password replaced by `***`
+    ///
+    /// Keeps scheme, username, host, port, database and query parameters
+    /// readable for diagnostics while ensuring the password cannot leak
+    /// into logs or error messages.
+    fn masked_dsn(&self) -> String {
+        // Matches the userinfo section of a DSN: `scheme://user:password@`
+        static DSN_PASSWORD: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"^(?P<prefix>[a-zA-Z][a-zA-Z0-9+.-]*://[^:/?#@]*):[^/?#]*@")
+                .expect("dsn masking regex is valid")
+        });
+
+        DSN_PASSWORD
+            .replace(&self.dsn, "${prefix}:***@")
+            .into_owned()
+    }
 }
 
 impl MysqlConf {
@@ -149,10 +169,70 @@ impl MysqlConf {
             .acquire_slow_threshold(self.get_slow_threshold())
             .acquire_time_level(self.get_timeout_level())
             .connect(&self.dsn)
-            .await?;
+            .await
+            .with_context(|| format!("connect mysql failed, dsn: {}", self.masked_dsn()))?;
 
         info!("MySQL connection pool initialized successfully");
 
         Ok(pool)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn conf_with_dsn(dsn: &str) -> MysqlConf {
+        MysqlConf {
+            dsn: dsn.to_string(),
+            max_connections: 5,
+            slow_level: "info".to_string(),
+            lifetime_sec: 30,
+            idle_sec: 10,
+            acquire_timeout_sec: 1,
+            timeout_level: "warn".to_string(),
+            slow_threshold_mills: 200,
+        }
+    }
+
+    #[test]
+    fn test_masked_dsn_hides_password() {
+        let conf = conf_with_dsn("mysql://app:secret@127.0.0.1:3306/app_db");
+        assert_eq!(conf.masked_dsn(), "mysql://app:***@127.0.0.1:3306/app_db");
+    }
+
+    #[test]
+    fn test_masked_dsn_keeps_query_params() {
+        let conf = conf_with_dsn("mysql://app:secret@127.0.0.1:3306/app_db?ssl-mode=required");
+        assert_eq!(conf.masked_dsn(), "mysql://app:***@127.0.0.1:3306/app_db?ssl-mode=required");
+    }
+
+    #[test]
+    fn test_masked_dsn_hides_at_sign_in_password() {
+        let conf = conf_with_dsn("mysql://app:p@ss@127.0.0.1:3306/app_db");
+        assert_eq!(conf.masked_dsn(), "mysql://app:***@127.0.0.1:3306/app_db");
+    }
+
+    #[test]
+    fn test_masked_dsn_without_password_is_unchanged() {
+        let conf = conf_with_dsn("mysql://app@127.0.0.1:3306/app_db");
+        assert_eq!(conf.masked_dsn(), "mysql://app@127.0.0.1:3306/app_db");
+    }
+
+    #[test]
+    fn test_masked_dsn_without_scheme_is_unchanged() {
+        let conf = conf_with_dsn("app:secret@tcp(127.0.0.1:3306)/app_db");
+        assert_eq!(conf.masked_dsn(), "app:secret@tcp(127.0.0.1:3306)/app_db");
+    }
+
+    #[tokio::test]
+    async fn test_init_conn_error_contains_masked_dsn_and_cause() {
+        let conf = conf_with_dsn("mysql://app:secret@127.0.0.1:3306/app_db?ssl-mode=invalid");
+        let err = conf.init_conn().await.unwrap_err();
+        let message = format!("{:#}", err);
+
+        assert!(message.contains("dsn: mysql://app:***@127.0.0.1:3306/app_db?ssl-mode=invalid"));
+        assert!(!message.contains("secret"));
+        assert!(message.contains("unknown value"));
     }
 }
