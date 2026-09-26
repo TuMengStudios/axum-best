@@ -4,9 +4,10 @@ use std::time::Duration;
 use anyhow::Context;
 use derivative::Derivative;
 use regex::Regex;
+use sea_orm::ConnectOptions;
+use sea_orm::Database;
+use sea_orm::DatabaseConnection;
 use serde::Deserialize;
-use sqlx::MySqlPool;
-use sqlx::mysql::MySqlPoolOptions;
 use tracing::info;
 
 /// MySQL database configuration
@@ -155,26 +156,36 @@ impl MysqlConf {
     /// Performs a basic connection test to verify the pool is working.
     ///
     /// # Returns
-    /// - `Ok(MySqlPool)` on successful pool creation
+    /// - `Ok(DatabaseConnection)` on successful pool creation
     /// - `Err(anyhow::Error)` if connection fails
-    pub async fn init_conn(&self) -> anyhow::Result<MySqlPool> {
+    pub async fn init_conn(&self) -> anyhow::Result<DatabaseConnection> {
         info!("Initializing MySQL connection pool with config: {:?}", self);
 
-        let pool = MySqlPoolOptions::new()
-            .max_connections(self.max_connections)
+        let mut opt = ConnectOptions::new(self.dsn.clone());
+        opt.max_connections(self.max_connections)
             .max_lifetime(self.get_lifetime())
             .idle_timeout(self.get_idle_timeout())
-            .acquire_timeout(self.get_acquire_timeout_sec())
-            .acquire_slow_level(self.get_slow_level())
-            .acquire_slow_threshold(self.get_slow_threshold())
-            .acquire_time_level(self.get_timeout_level())
-            .connect(&self.dsn)
+            .acquire_timeout(self.get_acquire_timeout_sec());
+
+        // SeaORM exposes pool sizing/timeouts directly, but the MySQL-specific
+        // acquisition logging switches stay on the underlying sqlx pool options.
+        let slow_level = self.get_slow_level();
+        let slow_threshold = self.get_slow_threshold();
+        let timeout_level = self.get_timeout_level();
+        opt.map_sqlx_mysql_pool_opts(move |pool_options| {
+            pool_options
+                .acquire_slow_level(slow_level)
+                .acquire_slow_threshold(slow_threshold)
+                .acquire_time_level(timeout_level)
+        });
+
+        let db = Database::connect(opt)
             .await
             .with_context(|| format!("connect mysql failed, dsn: {}", self.masked_dsn()))?;
 
         info!("MySQL connection pool initialized successfully");
 
-        Ok(pool)
+        Ok(db)
     }
 }
 

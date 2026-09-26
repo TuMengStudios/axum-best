@@ -1,78 +1,51 @@
-use crate::core::rest::AppError;
-use crate::errors;
+use std::sync::Arc;
+
+use sea_orm::DbErr;
+use sea_orm::error::ConnAcquireErr;
+use sea_orm::error::RuntimeErr;
 use tracing::debug;
 
-/// Converts SQLx errors into stable application errors.
+use crate::core::rest::AppError;
+use crate::errors;
+
+/// Converts SeaORM errors into stable application errors.
 ///
 /// The application error code identifies the technical category, while the
-/// original SQLx error is retained for server-side diagnostics only.
-pub(crate) fn covert_error(err: sqlx::Error) -> AppError {
+/// original database error is retained for server-side diagnostics only.
+pub(crate) fn covert_error(err: DbErr) -> AppError {
+    // Keep the underlying SQLx error as the cause when there is one, so
+    // diagnostics and existing error mapping stay unchanged.
+    if let DbErr::Query(RuntimeErr::SqlxError(sqlx_error))
+    | DbErr::Exec(RuntimeErr::SqlxError(sqlx_error))
+    | DbErr::Conn(RuntimeErr::SqlxError(sqlx_error)) = &err
+    {
+        let (app_error, detail) = map_sqlx_error(sqlx_error);
+        return app_error.with_cause(Arc::clone(sqlx_error), detail);
+    }
+
     let (app_error, detail) = match &err {
-        sqlx::Error::Configuration(configuration) => {
-            (errors::ErrDbConfiguration.clone(), format!("database configuration: {configuration}"))
+        DbErr::Query(RuntimeErr::Internal(internal))
+        | DbErr::Exec(RuntimeErr::Internal(internal))
+        | DbErr::Conn(RuntimeErr::Internal(internal)) => {
+            (errors::ErrDbUnknown.clone(), format!("database operation: {internal}"))
         }
-        sqlx::Error::InvalidArgument(argument) => {
-            (errors::ErrDbInvalidArgument.clone(), format!("database invalid argument: {argument}"))
-        }
-        sqlx::Error::Database(database_error) => {
-            let app_error = database_error
-                .code()
-                .map(|code| map_database_error_code(code.as_ref()))
-                .unwrap_or_else(|| errors::ErrDbUnknown.clone());
-            (app_error, format!("database operation: {database_error}"))
-        }
-        sqlx::Error::Io(io_error) => (errors::ErrDbIo.clone(), format!("database I/O: {io_error}")),
-        sqlx::Error::Tls(tls_error) => {
-            (errors::ErrDbTls.clone(), format!("database TLS: {tls_error}"))
-        }
-        sqlx::Error::Protocol(protocol_error) => {
-            (errors::ErrDbProtocol.clone(), format!("database protocol: {protocol_error}"))
-        }
-        sqlx::Error::RowNotFound => {
+        DbErr::ConnectionAcquire(acquire) => match acquire {
+            ConnAcquireErr::Timeout => (
+                errors::ErrDbPoolTimeout.clone(),
+                "database connection pool acquire timed out".to_string(),
+            ),
+            ConnAcquireErr::ConnectionClosed => {
+                (errors::ErrDbPoolClosed.clone(), "database connection pool is closed".to_string())
+            }
+        },
+        DbErr::RecordNotFound(_) => {
             (errors::ErrDbRowNotFound.clone(), "database row lookup".to_string())
         }
-        sqlx::Error::TypeNotFound { type_name } => {
-            (errors::ErrDbTypeNotFound.clone(), format!("database type lookup: {type_name}"))
+        DbErr::RecordNotUpdated => {
+            (errors::ErrDbRowNotFound.clone(), "database update matched no row".to_string())
         }
-        sqlx::Error::ColumnIndexOutOfBounds { index, len } => (
-            errors::ErrDbColumnIndexOutOfBounds.clone(),
-            format!("database column index lookup: index={index}, len={len}"),
-        ),
-        sqlx::Error::ColumnNotFound(column) => {
-            (errors::ErrDbColumnNotFound.clone(), format!("database column {column} lookup"))
-        }
-        sqlx::Error::ColumnDecode { index, source } => (
-            errors::ErrDbColumnDecode.clone(),
-            format!("database column decode: index={index}, source={source}"),
-        ),
-        sqlx::Error::Encode(encode_error) => {
-            (errors::ErrDbEncode.clone(), format!("database value encode: {encode_error}"))
-        }
-        sqlx::Error::Decode(decode_error) => {
-            (errors::ErrDbDecode.clone(), format!("database value decode: {decode_error}"))
-        }
-        sqlx::Error::AnyDriverError(driver_error) => {
-            (errors::ErrDbDriver.clone(), format!("database driver: {driver_error}"))
-        }
-        sqlx::Error::PoolTimedOut => (
-            errors::ErrDbPoolTimeout.clone(),
-            "database connection pool acquire timed out".to_string(),
-        ),
-        sqlx::Error::PoolClosed => {
-            (errors::ErrDbPoolClosed.clone(), "database connection pool is closed".to_string())
-        }
-        sqlx::Error::WorkerCrashed => {
-            (errors::ErrDbWorkerCrashed.clone(), "database worker crashed".to_string())
-        }
-        sqlx::Error::Migrate(migration_error) => {
-            (errors::ErrDbMigration.clone(), format!("database migration: {migration_error}"))
-        }
-        sqlx::Error::InvalidSavePointStatement => (
-            errors::ErrDbInvalidSavePoint.clone(),
-            "database savepoint statement is invalid".to_string(),
-        ),
-        sqlx::Error::BeginFailed => {
-            (errors::ErrDbBeginFailed.clone(), "database transaction begin failed".to_string())
+        DbErr::Migration(migration) => {
+            (errors::ErrDbMigration.clone(), format!("database migration: {migration}"))
         }
         other_error => (
             errors::ErrDbUnknownError.clone(),
@@ -80,9 +53,85 @@ pub(crate) fn covert_error(err: sqlx::Error) -> AppError {
         ),
     };
 
-    // Always attach the complete SQLx error. Only the stable application code
-    // and generic message are serialized; the cause is logged server-side.
     app_error.with_cause(err, detail)
+}
+
+/// Maps a SQLx error to a stable application error and diagnostic detail.
+fn map_sqlx_error(err: &sea_orm::sqlx::Error) -> (AppError, String) {
+    match err {
+        sea_orm::sqlx::Error::Configuration(configuration) => {
+            (errors::ErrDbConfiguration.clone(), format!("database configuration: {configuration}"))
+        }
+        sea_orm::sqlx::Error::InvalidArgument(argument) => {
+            (errors::ErrDbInvalidArgument.clone(), format!("database invalid argument: {argument}"))
+        }
+        sea_orm::sqlx::Error::Database(database_error) => {
+            let app_error = database_error
+                .code()
+                .map(|code| map_database_error_code(code.as_ref()))
+                .unwrap_or_else(|| errors::ErrDbUnknown.clone());
+            (app_error, format!("database operation: {database_error}"))
+        }
+        sea_orm::sqlx::Error::Io(io_error) => {
+            (errors::ErrDbIo.clone(), format!("database I/O: {io_error}"))
+        }
+        sea_orm::sqlx::Error::Tls(tls_error) => {
+            (errors::ErrDbTls.clone(), format!("database TLS: {tls_error}"))
+        }
+        sea_orm::sqlx::Error::Protocol(protocol_error) => {
+            (errors::ErrDbProtocol.clone(), format!("database protocol: {protocol_error}"))
+        }
+        sea_orm::sqlx::Error::RowNotFound => {
+            (errors::ErrDbRowNotFound.clone(), "database row lookup".to_string())
+        }
+        sea_orm::sqlx::Error::TypeNotFound { type_name } => {
+            (errors::ErrDbTypeNotFound.clone(), format!("database type lookup: {type_name}"))
+        }
+        sea_orm::sqlx::Error::ColumnIndexOutOfBounds { index, len } => (
+            errors::ErrDbColumnIndexOutOfBounds.clone(),
+            format!("database column index lookup: index={index}, len={len}"),
+        ),
+        sea_orm::sqlx::Error::ColumnNotFound(column) => {
+            (errors::ErrDbColumnNotFound.clone(), format!("database column {column} lookup"))
+        }
+        sea_orm::sqlx::Error::ColumnDecode { index, source } => (
+            errors::ErrDbColumnDecode.clone(),
+            format!("database column decode: index={index}, source={source}"),
+        ),
+        sea_orm::sqlx::Error::Encode(encode_error) => {
+            (errors::ErrDbEncode.clone(), format!("database value encode: {encode_error}"))
+        }
+        sea_orm::sqlx::Error::Decode(decode_error) => {
+            (errors::ErrDbDecode.clone(), format!("database value decode: {decode_error}"))
+        }
+        sea_orm::sqlx::Error::AnyDriverError(driver_error) => {
+            (errors::ErrDbDriver.clone(), format!("database driver: {driver_error}"))
+        }
+        sea_orm::sqlx::Error::PoolTimedOut => (
+            errors::ErrDbPoolTimeout.clone(),
+            "database connection pool acquire timed out".to_string(),
+        ),
+        sea_orm::sqlx::Error::PoolClosed => {
+            (errors::ErrDbPoolClosed.clone(), "database connection pool is closed".to_string())
+        }
+        sea_orm::sqlx::Error::WorkerCrashed => {
+            (errors::ErrDbWorkerCrashed.clone(), "database worker crashed".to_string())
+        }
+        sea_orm::sqlx::Error::Migrate(migration_error) => {
+            (errors::ErrDbMigration.clone(), format!("database migration: {migration_error}"))
+        }
+        sea_orm::sqlx::Error::InvalidSavePointStatement => (
+            errors::ErrDbInvalidSavePoint.clone(),
+            "database savepoint statement is invalid".to_string(),
+        ),
+        sea_orm::sqlx::Error::BeginFailed => {
+            (errors::ErrDbBeginFailed.clone(), "database transaction begin failed".to_string())
+        }
+        other_error => (
+            errors::ErrDbUnknownError.clone(),
+            format!("unclassified database error: {other_error}"),
+        ),
+    }
 }
 
 /// Maps database-specific error codes to stable application error codes.
@@ -117,21 +166,37 @@ mod tests {
 
     use super::*;
 
+    fn sqlx_error(err: sea_orm::sqlx::Error) -> DbErr {
+        DbErr::Query(RuntimeErr::SqlxError(Arc::new(err)))
+    }
+
     #[test]
     fn test_covert_error_row_not_found() {
-        let app_error = covert_error(sqlx::Error::RowNotFound);
+        let app_error = covert_error(DbErr::RecordNotFound("user row missing".to_string()));
         assert_eq!(app_error.into_response().status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 
     #[test]
     fn test_covert_error_pool_timeout() {
-        let app_error = covert_error(sqlx::Error::PoolTimedOut);
+        let app_error = covert_error(sqlx_error(sea_orm::sqlx::Error::PoolTimedOut));
         assert_eq!(app_error.into_response().status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[tokio::test]
+    async fn test_covert_error_record_not_updated_maps_to_row_not_found() {
+        let response = covert_error(DbErr::RecordNotUpdated).into_response();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(body["err_no"], 50213);
     }
 
     #[test]
     fn test_covert_error_configuration() {
-        let app_error = covert_error(sqlx::Error::Configuration("test config error".into()));
+        let app_error = covert_error(sqlx_error(sea_orm::sqlx::Error::Configuration(
+            "test config error".into(),
+        )));
         assert_eq!(app_error.into_response().status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 

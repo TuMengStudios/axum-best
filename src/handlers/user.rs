@@ -8,7 +8,7 @@ use crate::core::Result;
 use crate::core::state::AppState;
 use crate::core::valid::ValidJson;
 use crate::core::valid::ValidPath;
-use crate::models::user::UserInfo;
+use crate::models::UserInfo;
 use crate::types::user::BindEmailRequest;
 use crate::types::user::BindEmailResponse;
 use crate::types::user::ByUserIdRequest;

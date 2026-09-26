@@ -72,10 +72,10 @@ migrations/          # 数据库迁移脚本
 
 ### 系统要求
 
-- Rust 1.89+（[rustup](https://rustup.rs/)；国内推荐 [rsproxy](https://rsproxy.cn/)）
+- Rust 1.94+（[rustup](https://rustup.rs/)；国内推荐 [rsproxy](https://rsproxy.cn/)）
 - MySQL 5.7.20+
 - Redis 5.0+
-- `sqlx-cli`（含 MySQL 特性）
+- MySQL 客户端（`mysql`，用于执行迁移）
 
 ### 启动
 
@@ -85,10 +85,13 @@ git clone https://github.com/TuMengStudios/axum-best.git
 cd axum-best
 
 # 2. 配置（按需修改 etc/config.toml 中的 DSN / Redis / 微信 / 等）
-cp .env.example .env  # 供 sqlx-cli 与编译期查询检查使用
+cp .env.example .env  # 可选：本地环境变量覆盖
 
-# 3. 建库并执行迁移
-sqlx migrate run
+# 3. 建库并按时间顺序执行迁移
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS axum_best DEFAULT CHARACTER SET utf8mb4"
+for f in $(printf '%s\n' migrations/*.sql | sort -t_ -k1,1n); do
+  mysql -u root -p axum_best < "$f"
+done
 
 # 4. 启动开发服务器（默认 0.0.0.0:8080）
 cargo run

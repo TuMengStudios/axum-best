@@ -1,6 +1,6 @@
 //! Tests the uniqueness of the UserInfo::random() method
 
-use axum_best::models::user::UserInfo;
+use axum_best::models::UserInfo;
 
 fn main() {
     println!("生成 10 个随机用户，测试昵称和签名的唯一性...\n");

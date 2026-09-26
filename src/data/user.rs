@@ -1,105 +1,135 @@
 use async_trait::async_trait;
-use sqlx::MySqlPool;
-use sqlx::QueryBuilder;
+use sea_orm::ActiveModelTrait;
+use sea_orm::ActiveValue::NotSet;
+use sea_orm::ActiveValue::Set;
+use sea_orm::ColumnTrait;
+use sea_orm::DatabaseConnection;
+use sea_orm::EntityTrait;
+use sea_orm::PaginatorTrait;
+use sea_orm::QueryFilter;
+use sea_orm::QueryOrder;
+use sea_orm::QuerySelect;
+use sea_orm::TransactionTrait;
+use sea_orm::sea_query::Expr;
 
 use super::db_error::covert_error;
 use crate::core::rest::AppError;
-use crate::models::oauth::OAuthAccount;
-use crate::models::user::UserInfo;
+use crate::models::OAuthAccount;
+use crate::models::UserInfo;
+use crate::models::entity::oauth_account as oauth_entity;
+use crate::models::entity::user_info as user_entity;
 use crate::repos::user::UserRepo;
 use crate::repos::user::UserUpdate;
 
-/// User repository implementation backed by MySQL/SQLx
+/// User repository implementation backed by MySQL/SeaORM
 pub struct MySqlUserRepo {
-    pool: MySqlPool,
+    db: DatabaseConnection,
 }
 
 impl MySqlUserRepo {
-    pub fn new(pool: MySqlPool) -> MySqlUserRepo {
-        MySqlUserRepo { pool }
+    pub fn new(db: DatabaseConnection) -> MySqlUserRepo {
+        MySqlUserRepo { db }
     }
+}
+
+/// Maps a domain user into an insertable active model (primary key left to MySQL).
+fn active_model_for_create(user: &UserInfo) -> user_entity::ActiveModel {
+    user_entity::ActiveModel {
+        id: NotSet,
+        nick_name: Set(user.nick_name.clone()),
+        avatar: Set(user.avatar.clone()),
+        signature: Set(user.signature.clone()),
+        age: Set(user.age),
+        phone: Set(user.phone.clone()),
+        salt: Set(user.salt.clone()),
+        password: Set(user.password.clone()),
+        created_at: Set(user.created_at),
+        updated_at: Set(user.updated_at),
+        deleted_at: Set(user.deleted_at),
+        status: Set(user.status),
+    }
+}
+
+/// Maps a domain user into an updatable active model.
+///
+/// `created_at` / `deleted_at` are left untouched and `updated_at` is left for
+/// the entity `before_save` hook, so the database always gets the current time.
+fn active_model_for_update(user: &UserInfo) -> user_entity::ActiveModel {
+    user_entity::ActiveModel {
+        id: Set(user.id),
+        nick_name: Set(user.nick_name.clone()),
+        avatar: Set(user.avatar.clone()),
+        signature: Set(user.signature.clone()),
+        age: Set(user.age),
+        phone: Set(user.phone.clone()),
+        salt: Set(user.salt.clone()),
+        password: Set(user.password.clone()),
+        created_at: NotSet,
+        updated_at: NotSet,
+        deleted_at: NotSet,
+        status: Set(user.status),
+    }
+}
+
+/// Maps a domain oauth account into an insertable active model.
+fn active_model_for_oauth(account: &OAuthAccount) -> oauth_entity::ActiveModel {
+    oauth_entity::ActiveModel {
+        id: NotSet,
+        user_id: Set(account.user_id),
+        provider: Set(account.provider.clone()),
+        provider_app_id: Set(account.provider_app_id.clone()),
+        sub_id: Set(account.sub_id.clone()),
+        created_at: Set(account.created_at),
+        updated_at: Set(account.updated_at),
+    }
+}
+
+fn row_not_found() -> AppError {
+    covert_error(sea_orm::DbErr::RecordNotFound("user row missing".to_string()))
 }
 
 #[async_trait]
 impl UserRepo for MySqlUserRepo {
     /// Creates a user
     async fn create(&self, user: &mut UserInfo) -> Result<(), AppError> {
-        user.id = sqlx::query_as!(UserInfo,
-            r#"INSERT INTO user_info (nick_name, avatar, signature, age, phone, salt, password, created_at, updated_at, deleted_at, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
-            user.nick_name,
-            user.avatar,
-            user.signature,
-            user.age,
-            user.phone,
-            user.salt,
-            user.password,
-            user.created_at,
-            user.updated_at,
-            user.deleted_at,
-            user.status
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(covert_error)?
-        .last_insert_id() as i64;
-
+        let model = active_model_for_create(user)
+            .insert(&self.db)
+            .await
+            .map_err(covert_error)?;
+        user.id = model.id;
         Ok(())
     }
 
     /// Updates user information
+    ///
+    /// `updated_at` is refreshed by the entity `before_save` hook, ignoring the
+    /// value carried by `user`.
     async fn update(&self, user: &UserInfo) -> Result<(), AppError> {
-        sqlx::query!(
-            r#"UPDATE user_info SET
-               nick_name = ?, avatar = ?, signature = ?, age = ?, phone = ?,
-               salt = ?, password = ?, status = ?, updated_at = ?
-               WHERE id = ?"#,
-            user.nick_name,
-            user.avatar,
-            user.signature,
-            user.age,
-            user.phone,
-            user.salt,
-            user.password,
-            user.status,
-            user.updated_at,
-            user.id
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(covert_error)?;
+        active_model_for_update(user)
+            .update_without_returning(&self.db)
+            .await
+            .map_err(covert_error)?;
 
         Ok(())
     }
 
     /// Gets a user by ID
     async fn get_by_id(&self, id: i64) -> Result<UserInfo, AppError> {
-        let user = sqlx::query_as!(
-            UserInfo,
-            r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
-                      created_at, updated_at, deleted_at, status
-               FROM user_info WHERE id = ?"#,
-            id
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(covert_error)?;
-        Ok(user)
+        user_entity::Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(covert_error)?
+            .ok_or_else(row_not_found)
     }
 
     /// Gets a user by phone number
     async fn get_by_phone(&self, phone: &str) -> Result<UserInfo, AppError> {
-        let user = sqlx::query_as!(
-            UserInfo,
-            r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
-                      created_at, updated_at, deleted_at, status
-               FROM user_info WHERE phone = ?"#,
-            phone
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(covert_error)?;
-        Ok(user)
+        user_entity::Entity::find()
+            .filter(user_entity::Column::Phone.eq(phone))
+            .one(&self.db)
+            .await
+            .map_err(covert_error)?
+            .ok_or_else(row_not_found)
     }
 
     /// Gets a user by third-party identity
@@ -109,38 +139,33 @@ impl UserRepo for MySqlUserRepo {
         provider_app_id: &str,
         sub_id: &str,
     ) -> Result<Option<UserInfo>, AppError> {
-        sqlx::query_as::<_, UserInfo>(
-            r#"SELECT u.id, u.nick_name, u.avatar, u.signature, u.age, u.phone,
-                      u.salt, u.password, u.created_at, u.updated_at, u.deleted_at, u.status
-               FROM user_info u
-               INNER JOIN user_oauth_account a ON a.user_id = u.id
-               WHERE a.provider = ? AND a.provider_app_id = ?
-                 AND a.sub_id = ? AND u.deleted_at = 0"#,
-        )
-        .bind(provider)
-        .bind(provider_app_id)
-        .bind(sub_id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(covert_error)
+        let account = oauth_entity::Entity::find()
+            .filter(oauth_entity::Column::Provider.eq(provider))
+            .filter(oauth_entity::Column::ProviderAppId.eq(provider_app_id))
+            .filter(oauth_entity::Column::SubId.eq(sub_id))
+            .one(&self.db)
+            .await
+            .map_err(covert_error)?;
+
+        let Some(account) = account else {
+            return Ok(None);
+        };
+
+        let user = user_entity::Entity::find_by_id(account.user_id)
+            .filter(user_entity::Column::DeletedAt.eq(0))
+            .one(&self.db)
+            .await
+            .map_err(covert_error)?;
+
+        Ok(user)
     }
 
     async fn create_oauth_account(&self, account: &mut OAuthAccount) -> Result<(), AppError> {
-        account.id = sqlx::query(
-            r#"INSERT INTO user_oauth_account
-               (user_id, provider, provider_app_id, sub_id, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?)"#,
-        )
-        .bind(account.user_id)
-        .bind(&account.provider)
-        .bind(&account.provider_app_id)
-        .bind(&account.sub_id)
-        .bind(account.created_at)
-        .bind(account.updated_at)
-        .execute(&self.pool)
-        .await
-        .map_err(covert_error)?
-        .last_insert_id() as i64;
+        let model = active_model_for_oauth(account)
+            .insert(&self.db)
+            .await
+            .map_err(covert_error)?;
+        account.id = model.id;
         Ok(())
     }
 
@@ -149,46 +174,20 @@ impl UserRepo for MySqlUserRepo {
         user: &mut UserInfo,
         account: &mut OAuthAccount,
     ) -> Result<(), AppError> {
-        let mut tx = self.pool.begin().await.map_err(covert_error)?;
+        let tx = self.db.begin().await.map_err(covert_error)?;
 
-        user.id = sqlx::query(
-            r#"INSERT INTO user_info
-               (nick_name, avatar, signature, age, phone, salt, password,
-                created_at, updated_at, deleted_at, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
-        )
-        .bind(&user.nick_name)
-        .bind(&user.avatar)
-        .bind(&user.signature)
-        .bind(user.age)
-        .bind(&user.phone)
-        .bind(&user.salt)
-        .bind(&user.password)
-        .bind(user.created_at)
-        .bind(user.updated_at)
-        .bind(user.deleted_at)
-        .bind(user.status)
-        .execute(&mut *tx)
-        .await
-        .map_err(covert_error)?
-        .last_insert_id() as i64;
+        let model = active_model_for_create(user)
+            .insert(&tx)
+            .await
+            .map_err(covert_error)?;
+        user.id = model.id;
 
         account.user_id = user.id;
-        account.id = sqlx::query(
-            r#"INSERT INTO user_oauth_account
-               (user_id, provider, provider_app_id, sub_id, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?)"#,
-        )
-        .bind(account.user_id)
-        .bind(&account.provider)
-        .bind(&account.provider_app_id)
-        .bind(&account.sub_id)
-        .bind(account.created_at)
-        .bind(account.updated_at)
-        .execute(&mut *tx)
-        .await
-        .map_err(covert_error)?
-        .last_insert_id() as i64;
+        let model = active_model_for_oauth(account)
+            .insert(&tx)
+            .await
+            .map_err(covert_error)?;
+        account.id = model.id;
 
         tx.commit().await.map_err(covert_error)?;
         Ok(())
@@ -196,8 +195,10 @@ impl UserRepo for MySqlUserRepo {
 
     /// Soft-deletes a user (sets the deleted_at timestamp)
     async fn delete(&self, id: i64, deleted_at: i64) -> Result<(), AppError> {
-        sqlx::query!(r#"UPDATE user_info SET deleted_at = ? WHERE id = ?"#, deleted_at, id)
-            .execute(&self.pool)
+        user_entity::Entity::update_many()
+            .col_expr(user_entity::Column::DeletedAt, Expr::value(deleted_at))
+            .filter(user_entity::Column::Id.eq(id))
+            .exec(&self.db)
             .await
             .map_err(covert_error)?;
 
@@ -206,8 +207,8 @@ impl UserRepo for MySqlUserRepo {
 
     /// Hard-deletes a user (removes the row from the database)
     async fn hard_delete(&self, id: i64) -> Result<(), AppError> {
-        sqlx::query!(r#"DELETE FROM user_info WHERE id = ?"#, id)
-            .execute(&self.pool)
+        user_entity::Entity::delete_by_id(id)
+            .exec(&self.db)
             .await
             .map_err(covert_error)?;
 
@@ -216,30 +217,28 @@ impl UserRepo for MySqlUserRepo {
 
     /// Lists users (paginated query)
     async fn list(&self, page: u32, page_size: u32) -> Result<Vec<UserInfo>, AppError> {
-        let offset = (page - 1) * page_size;
-        let users = sqlx::query_as!(
-            UserInfo,
-            r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
-                      created_at, updated_at, deleted_at, status
-               FROM user_info WHERE deleted_at = 0 ORDER BY id DESC LIMIT ? OFFSET ?"#,
-            page_size as i64,
-            offset as i64
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(covert_error)?;
+        let offset = u64::from(page - 1) * u64::from(page_size);
+        let users = user_entity::Entity::find()
+            .filter(user_entity::Column::DeletedAt.eq(0))
+            .order_by_desc(user_entity::Column::Id)
+            .offset(offset)
+            .limit(u64::from(page_size))
+            .all(&self.db)
+            .await
+            .map_err(covert_error)?;
 
         Ok(users)
     }
 
     /// Counts users
     async fn count(&self) -> Result<i64, AppError> {
-        let count = sqlx::query_scalar!(r#"SELECT COUNT(*) FROM user_info WHERE deleted_at = 0"#)
-            .fetch_one(&self.pool)
+        let count = user_entity::Entity::find()
+            .filter(user_entity::Column::DeletedAt.eq(0))
+            .count(&self.db)
             .await
             .map_err(covert_error)?;
 
-        Ok(count)
+        Ok(count as i64)
     }
 
     /// Searches users by nickname
@@ -249,61 +248,49 @@ impl UserRepo for MySqlUserRepo {
         page: u32,
         page_size: u32,
     ) -> Result<Vec<UserInfo>, AppError> {
-        let offset = (page - 1) * page_size;
-        let search_pattern = format!("%{}%", nickname);
-
-        let users = sqlx::query_as!(
-            UserInfo,
-            r#"SELECT id, nick_name, avatar, signature, age, phone, salt, password,
-                      created_at, updated_at, deleted_at, status
-               FROM user_info
-               WHERE nick_name LIKE ? AND deleted_at = 0
-               ORDER BY id DESC LIMIT ? OFFSET ?"#,
-            search_pattern,
-            page_size as i64,
-            offset as i64
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(covert_error)?;
+        let offset = u64::from(page - 1) * u64::from(page_size);
+        let users = user_entity::Entity::find()
+            .filter(user_entity::Column::NickName.contains(nickname))
+            .filter(user_entity::Column::DeletedAt.eq(0))
+            .order_by_desc(user_entity::Column::Id)
+            .offset(offset)
+            .limit(u64::from(page_size))
+            .all(&self.db)
+            .await
+            .map_err(covert_error)?;
 
         Ok(users)
     }
 
-    /// Updates part of a user's information (builds the update statement dynamically with QueryBuilder)
+    /// Updates part of a user's information (only the provided columns are written)
+    ///
+    /// `updated_at` is refreshed by the entity `before_save` hook on every
+    /// partial update, even when the caller does not request it.
     async fn update_partial(&self, id: i64, updates: &[UserUpdate]) -> Result<(), AppError> {
         if updates.is_empty() {
             return Ok(());
         }
 
-        let mut query_builder = QueryBuilder::new("UPDATE user_info SET ");
-
-        for (i, update) in updates.iter().enumerate() {
-            if i > 0 {
-                query_builder.push(", ");
+        let mut model = user_entity::ActiveModel {
+            id: Set(id),
+            ..Default::default()
+        };
+        for update_item in updates {
+            match update_item {
+                UserUpdate::NickName(value) => model.nick_name = Set(value.clone()),
+                UserUpdate::Avatar(value) => model.avatar = Set(value.clone()),
+                UserUpdate::Signature(value) => model.signature = Set(value.clone()),
+                UserUpdate::Age(value) => model.age = Set(*value),
+                UserUpdate::Phone(value) => model.phone = Set(value.clone()),
+                UserUpdate::Salt(value) => model.salt = Set(value.clone()),
+                UserUpdate::Password(value) => model.password = Set(value.clone()),
+                UserUpdate::Status(value) => model.status = Set(*value),
+                UserUpdate::UpdatedAt(_) => {}
             }
-
-            match update {
-                UserUpdate::NickName(value) => query_builder.push("nick_name = ").push_bind(value),
-                UserUpdate::Avatar(value) => query_builder.push("avatar = ").push_bind(value),
-                UserUpdate::Signature(value) => query_builder.push("signature = ").push_bind(value),
-                UserUpdate::Age(value) => query_builder.push("age = ").push_bind(value),
-                UserUpdate::Phone(value) => query_builder.push("phone = ").push_bind(value),
-                UserUpdate::Salt(value) => query_builder.push("salt = ").push_bind(value),
-                UserUpdate::Password(value) => query_builder.push("password = ").push_bind(value),
-                UserUpdate::Status(value) => query_builder.push("status = ").push_bind(value),
-                UserUpdate::UpdatedAt(value) => {
-                    query_builder.push("updated_at = ").push_bind(value)
-                }
-            };
         }
 
-        query_builder.push(" WHERE id = ");
-        query_builder.push_bind(id);
-
-        query_builder
-            .build()
-            .execute(&self.pool)
+        model
+            .update_without_returning(&self.db)
             .await
             .map_err(covert_error)?;
 
