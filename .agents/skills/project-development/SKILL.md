@@ -21,7 +21,7 @@ handlers -> services -> repos (traits) <- data implementations
 - `handlers/`: HTTP extraction, validation, service invocation only.
 - `services/`: business logic; depend on `Arc<dyn Repo>` traits.
 - `repos/`: data-access contracts.
-- `data/`: SQLx/MySQL, Redis, and external API implementations.
+- `data/`: SeaORM/MySQL, Redis, and external API implementations.
 - `models/`: persistence/domain models.
 - `types/`: request/response DTOs, validation, OpenAPI schemas.
 - `routers/`: route registration and route middleware.
@@ -76,7 +76,7 @@ and details are server-side only and must not appear in responses.
 - Reuse errors from `src/errors/codes.rs`; clone static values.
 - Add new errors there with a unique code, correct status, and safe message.
 - Preserve current code families: `10000` success, `14000` validation, `204xx` auth/user, `40400` not found, `40800` timeout, `42900` rate limit, `501xx` Redis, `502xx` database, `505xx` WeChat/JSON, `50000` not implemented.
-- Use `with_cause` for safe server-side context and `covert_error` for SQLx failures.
+- Use `with_cause` for safe server-side context and `covert_error` for SeaORM failures.
 - Validation errors use `14000`.
 - Test status, envelope, error code, and absence of internal details.
 
@@ -94,13 +94,13 @@ contract.
 - Preserve global middleware ordering in `src/routers/layers.rs`.
 - Never log JWTs, authorization headers, passwords, salts, verification codes, WeChat codes/secrets, DSNs, or unnecessary personal data. Existing sensitive logs are technical debt; do not copy them.
 
-## SQLx, Redis, and Configuration
+## SeaORM, Redis, and Configuration
 
-- Add schema changes as new files under `migrations/`; do not edit applied migrations.
-- Prefer compile-time checked `sqlx::query!` / `query_as!`, explicit columns, bound parameters, and transactions for atomic multi-write operations.
-- Preserve soft-delete and active-user behavior.
-- Convert SQLx errors through the existing mapper. Keep Redis keys and expiration behavior explicit and stable.
-- Update `.sqlx/` offline metadata when SQL changes require it.
+- Add schema changes as new files under `migrations/`; do not edit applied migrations. Apply the plain SQL files in timestamp order with the `mysql` client (no sqlx-cli / migrator framework).
+- Define each table as a SeaORM entity under `src/models/entity/<table>.rs` (`DeriveEntityModel`, struct named `Model`) and re-export the public name from `src/models/mod.rs` (`UserInfo`, `OAuthAccount`); access it through `Entity`/`ActiveModel`/`Column` with bound values; use transactions for atomic multi-write operations.
+- Preserve soft-delete and active-user behavior with explicit `deleted_at` filters; SeaORM has no built-in soft delete.
+- Store timestamps as Unix epoch **milliseconds** (`Utc::now().timestamp_millis()`); entity `before_save` fills unset `created_at`/`updated_at`, and creates go through `ActiveModel::insert` so the hook runs.
+- Convert SeaORM `DbErr` through the existing mapper (`src/data/db_error.rs`). Keep Redis keys and expiration behavior explicit and stable.
 - Add configuration fields to the config type and `etc/config.toml`; keep production secrets in environment/secret management.
 
 ## OpenAPI / Swagger

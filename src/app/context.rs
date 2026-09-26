@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::Router;
-use sqlx::MySqlPool;
+use sea_orm::DatabaseConnection;
 use tracing::error;
 use tracing::info;
 use tracing_appender::non_blocking::WorkerGuard;
@@ -46,7 +46,7 @@ use crate::services::user::UserService;
 pub struct AppContext {
     cfg: Arc<AppConf>,
     router: Router,
-    db_pool: MySqlPool,
+    db_pool: DatabaseConnection,
     /// Shared fire-and-forget task pool; a clone lives inside `AppState`.
     /// Kept on the context so startup and shutdown paths can submit tasks too.
     #[allow(dead_code)]
@@ -141,11 +141,11 @@ impl AppContext {
 
     /// Closes connection pools once the HTTP server has drained
     ///
-    /// sqlx supports deterministic async close. The bb8 redis pool has no
-    /// close API; it is torn down by dropping the context (its only handle
-    /// lives inside the repository in `app_state`).
+    /// SeaORM exposes deterministic async close on its database handle. The
+    /// bb8 redis pool has no close API; it is torn down by dropping the
+    /// context (its only handle lives inside the repository in `app_state`).
     async fn close_pools(&self) {
-        self.db_pool.close().await;
+        let _ = self.db_pool.close_by_ref().await;
         info!("connection pools closed");
     }
 }

@@ -1,43 +1,67 @@
-use std::fmt::Debug;
-use std::fmt::Display;
-
 use rand::Rng;
+use sea_orm::ActiveValue::Set;
+use sea_orm::entity::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
 use smart_default::SmartDefault;
-use sqlx::FromRow;
 
-/// User information entity representing a user in the system
-#[derive(FromRow, Debug, SmartDefault, Deserialize, Serialize, utoipa::ToSchema)]
-pub struct UserInfo {
+/// `user_info` table entity and domain model.
+///
+/// SeaORM requires the model struct to be named `Model`; it is re-exported as
+/// `UserInfo` from `models` and keeps the `UserInfo` OpenAPI schema name.
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    DeriveEntityModel,
+    SmartDefault,
+    Deserialize,
+    Serialize,
+    utoipa::ToSchema,
+)]
+#[sea_orm(table_name = "user_info")]
+#[schema(as = UserInfo)]
+pub struct Model {
     /// Unique identifier for the user
+    #[sea_orm(primary_key)]
     pub id: i64,
     /// Display name of the user
+    #[sea_orm(default_value = "")]
     pub nick_name: String,
     /// URL or path to user's profile picture
+    #[sea_orm(default_value = "")]
     pub avatar: String,
     /// User's personal signature or bio
+    #[sea_orm(default_value = "")]
     pub signature: String,
     /// User's age
+    #[sea_orm(default_value = 0)]
     pub age: u8,
     /// User's phone number
+    #[sea_orm(default_value = "")]
     pub phone: String,
     /// Salt used for password hashing
+    #[sea_orm(default_value = "")]
     pub salt: String,
     /// Hashed password
+    #[sea_orm(default_value = "")]
     pub password: String,
-    /// Timestamp when the user was created (Unix timestamp)
+    /// Timestamp when the user was created (Unix timestamp in milliseconds)
+    #[sea_orm(default_value = 0)]
     pub created_at: i64,
-    /// Timestamp when the user was last updated (Unix timestamp)
+    /// Timestamp when the user was last updated (Unix timestamp in milliseconds)
+    #[sea_orm(default_value = 0)]
     pub updated_at: i64,
-    /// Timestamp when the user was deleted (Unix timestamp, 0 if not deleted)
+    /// Timestamp when the user was deleted (Unix timestamp in milliseconds, 0 if not deleted)
+    #[sea_orm(default_value = 0)]
     pub deleted_at: i64,
-    /// Account status, see [`UserInfo::STATUS_NORMAL`] / [`UserInfo::STATUS_DISABLED`]
+    /// Account status, see [`Model::STATUS_NORMAL`] / [`Model::STATUS_DISABLED`]
+    #[sea_orm(default_value = 0)]
     pub status: i8,
     // .... other fields
 }
 
-impl UserInfo {
+impl Model {
     /// Account is active and allowed to log in
     pub const STATUS_NORMAL: i8 = 0;
     /// Account has been disabled (e.g. banned by an admin)
@@ -45,7 +69,7 @@ impl UserInfo {
 
     /// Creates a local user record for a first-time external login.
     pub fn new_external() -> Self {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now().timestamp_millis();
         Self {
             id: 0,
             nick_name: "新用户".to_string(),
@@ -121,14 +145,14 @@ impl UserInfo {
     ///
     /// # Example
     /// ```
-    /// use axum_best::models::user::UserInfo;
+    /// use axum_best::models::UserInfo;
     ///
     /// let random_user = UserInfo::random();
     /// println!("random user: {:?}", random_user);
     /// ```
     pub fn random() -> Self {
         let mut rng = rand::rng();
-        let timestamp = chrono::Utc::now().timestamp();
+        let timestamp = chrono::Utc::now().timestamp_millis();
 
         // Extended random nickname list for more variety
         let nick_names = vec![
@@ -275,7 +299,7 @@ impl UserInfo {
             rng.random_range(0..=9),
         );
 
-        UserInfo {
+        Self {
             id: rng.random_range(1000..100000),
             nick_name,
             avatar: format!("https://example.com/avatar_{}.jpg", avatar_id),
@@ -284,7 +308,7 @@ impl UserInfo {
             phone,
             salt,
             password,
-            created_at: timestamp - rng.random_range(0..31536000), // random time within the past year
+            created_at: timestamp - rng.random_range(0..31_536_000_000_i64), // random time within the past year (ms)
             updated_at: timestamp,
             deleted_at: 0,
             status: Self::STATUS_NORMAL,
@@ -292,31 +316,31 @@ impl UserInfo {
     }
 }
 
-#[derive(Debug)]
-pub enum P {
-    I32(i32),
-    I64(i64),
-    Bool(bool),
-    Str(String),
-}
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
 
-impl Display for P {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::I32(arg0) => f.write_fmt(format_args!("{}", arg0)),
-            Self::I64(arg0) => f.write_fmt(format_args!("{}", arg0)),
-            Self::Bool(arg0) => f.write_fmt(format_args!("{}", arg0)),
-            Self::Str(arg0) => f.write_fmt(format_args!("{}", arg0)),
+#[async_trait::async_trait]
+impl ActiveModelBehavior for ActiveModel {
+    /// Fills unset timestamps with the current Unix epoch milliseconds.
+    async fn before_save<C>(mut self, _db: &C, insert: bool) -> Result<Self, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        if insert && self.created_at.is_not_set() {
+            self.created_at = Set(chrono::Utc::now().timestamp_millis());
         }
+        self.updated_at = Set(chrono::Utc::now().timestamp_millis());
+        Ok(self)
     }
 }
+
 #[cfg(test)]
 mod tests {
-    use super::UserInfo;
+    use super::Model;
 
     #[test]
     fn test_chain_setters() {
-        let mut user = UserInfo {
+        let mut user = Model {
             id: 1,
             nick_name: "".to_string(),
             avatar: "".to_string(),
@@ -342,7 +366,7 @@ mod tests {
             .set_created_at(1696560000)
             .set_updated_at(1696560000)
             .set_deleted_at(0)
-            .set_status(UserInfo::STATUS_NORMAL);
+            .set_status(Model::STATUS_NORMAL);
 
         // Verify the values that were set
         assert_eq!(user.nick_name, "张三");
@@ -355,12 +379,12 @@ mod tests {
         assert_eq!(user.created_at, 1696560000);
         assert_eq!(user.updated_at, 1696560000);
         assert_eq!(user.deleted_at, 0);
-        assert_eq!(user.status, UserInfo::STATUS_NORMAL);
+        assert_eq!(user.status, Model::STATUS_NORMAL);
     }
 
     #[test]
     fn test_partial_chain_setters() {
-        let mut user = UserInfo {
+        let mut user = Model {
             id: 2,
             nick_name: "".to_string(),
             avatar: "".to_string(),
@@ -392,9 +416,9 @@ mod tests {
     #[test]
     fn test_random_user_generation() {
         // Generate several random users and ensure each generation differs
-        let user1 = UserInfo::random();
-        let user2 = UserInfo::random();
-        let user3 = UserInfo::random();
+        let user1 = Model::random();
+        let user2 = Model::random();
+        let user3 = Model::random();
 
         // Verify basic fields are not empty
         assert!(!user1.nick_name.is_empty());
@@ -438,33 +462,13 @@ mod tests {
 
     #[test]
     fn test_new_external_user() {
-        let user = UserInfo::new_external();
+        let user = Model::new_external();
 
         assert_eq!(user.id, 0);
         assert_eq!(user.nick_name, "新用户");
         assert_eq!(user.deleted_at, 0);
-        assert_eq!(user.status, UserInfo::STATUS_NORMAL);
+        assert_eq!(user.status, Model::STATUS_NORMAL);
         assert!(user.created_at > 0);
         assert_eq!(user.created_at, user.updated_at);
     }
-}
-
-#[allow(unused)]
-#[tokio::test]
-async fn data() {
-    use std::collections::HashMap;
-
-    use sqlx::MySql;
-
-    let mut map = HashMap::new();
-    map.insert("s".to_string(), P::Bool(true));
-    map.insert("key".to_string(), P::Str("hello".to_string()));
-    map.insert("num".to_string(), P::I64(233));
-    #[allow(non_snake_case)]
-    let mut sqlBuilder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new("");
-    for ele in map.iter() {
-        sqlBuilder.push(format!("{} = ?", ele.0));
-        sqlBuilder.push_bind(format!("{}", ele.1));
-    }
-    println!("data {:#?}", map);
 }

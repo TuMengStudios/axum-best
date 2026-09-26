@@ -1,6 +1,6 @@
 use utoipa::OpenApi;
 
-use crate::models::user::UserInfo;
+use crate::models::UserInfo;
 use crate::types::foo::{FooItem, FooRequest, FooResponse};
 use crate::types::user::{
     BindEmailRequest, BindEmailResponse, ByUserIdResponse, PreBindEmailRequest,
@@ -61,5 +61,20 @@ impl utoipa::Modify for SecurityAddon {
                 ),
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use utoipa::OpenApi;
+
+    use super::ApiDoc;
+
+    #[test]
+    fn entity_models_expose_their_public_schema_names() {
+        let doc = ApiDoc::openapi();
+        let schemas = doc.components.expect("components must exist").schemas;
+        assert!(schemas.contains_key("UserInfo"), "schemas: {:?}", schemas.keys());
+        assert!(!schemas.contains_key("Model"), "schemas: {:?}", schemas.keys());
     }
 }

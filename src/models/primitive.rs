@@ -285,3 +285,23 @@ mod tests {
         assert!(!str_val.is_numeric());
     }
 }
+
+/// Tagged primitive value helper.
+#[derive(Debug)]
+pub enum P {
+    I32(i32),
+    I64(i64),
+    Bool(bool),
+    Str(String),
+}
+
+impl fmt::Display for P {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::I32(arg0) => f.write_fmt(format_args!("{}", arg0)),
+            Self::I64(arg0) => f.write_fmt(format_args!("{}", arg0)),
+            Self::Bool(arg0) => f.write_fmt(format_args!("{}", arg0)),
+            Self::Str(arg0) => f.write_fmt(format_args!("{}", arg0)),
+        }
+    }
+}

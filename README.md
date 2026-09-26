@@ -77,10 +77,10 @@ Dependencies flow one way: `handlers → services → repos (traits) ← data (i
 
 ### Prerequisites
 
-- Rust 1.89+ (install via [rustup](https://rustup.rs/))
+- Rust 1.94+ (install via [rustup](https://rustup.rs/))
 - MySQL 5.7.20+
 - Redis 5.0+
-- `sqlx-cli` with MySQL support
+- MySQL client (`mysql`) to apply migrations
 
 ### Run
 
@@ -90,10 +90,13 @@ git clone https://github.com/TuMengStudios/axum-best.git
 cd axum-best
 
 # 2. Configure (edit etc/config.toml for DSN / Redis / WeChat / etc.)
-cp .env.example .env  # for sqlx-cli + compile-time query check
+cp .env.example .env  # optional environment overrides
 
-# 3. Create database and run migrations
-sqlx migrate run
+# 3. Create the database and apply migrations in timestamp order
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS axum_best DEFAULT CHARACTER SET utf8mb4"
+for f in $(printf '%s\n' migrations/*.sql | sort -t_ -k1,1n); do
+  mysql -u root -p axum_best < "$f"
+done
 
 # 4. Start the development server (listens on 0.0.0.0:8080)
 cargo run
