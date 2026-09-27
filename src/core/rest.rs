@@ -114,6 +114,10 @@ mod tests {
     use axum::response::IntoResponse;
     use std::sync::Arc;
 
+    fn db_err(err: sea_orm::sqlx::Error) -> sea_orm::DbErr {
+        sea_orm::DbErr::Query(sea_orm::error::RuntimeErr::SqlxError(Arc::new(err)))
+    }
+
     #[tokio::test]
     async fn test_app_error() {
         let res = AppError::new(StatusCode::OK, 1, "error");
@@ -143,7 +147,7 @@ mod tests {
     #[test]
     fn test_with_cause() {
         let base = AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50200, "Server Internal Error");
-        let err = base.with_cause(sqlx::Error::PoolClosed, "query user by id");
+        let err = base.with_cause(sea_orm::sqlx::Error::PoolClosed, "query user by id");
 
         assert_eq!(err.status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(err.err_no, 50200);
@@ -155,7 +159,7 @@ mod tests {
         );
 
         // Predefined `errors::ErrDbXxx` values are static and must not be moved.
-        let cloned = crate::errors::ErrDbIo.with_cause(sqlx::Error::PoolClosed, "ping");
+        let cloned = crate::errors::ErrDbIo.with_cause(sea_orm::sqlx::Error::PoolClosed, "ping");
         assert_eq!(cloned.status, crate::errors::ErrDbIo.status);
         assert_eq!(cloned.err_no, crate::errors::ErrDbIo.err_no);
         assert!(cloned.err.is_some());
@@ -163,8 +167,8 @@ mod tests {
 
     #[test]
     fn test_database_conversion_keeps_io_cause() {
-        let err = crate::data::db_error::covert_error(sqlx::Error::Io(std::io::Error::other(
-            "connection reset",
+        let err = crate::data::db_error::covert_error(db_err(sea_orm::sqlx::Error::Io(
+            std::io::Error::other("connection reset"),
         )));
 
         assert_eq!(err.err_no, 50210);
@@ -181,9 +185,9 @@ mod tests {
 
     #[test]
     fn test_database_conversion_keeps_protocol_cause() {
-        let err = crate::data::db_error::covert_error(sqlx::Error::Protocol(
+        let err = crate::data::db_error::covert_error(db_err(sea_orm::sqlx::Error::Protocol(
             "unexpected packet".to_string(),
-        ));
+        )));
 
         assert_eq!(err.err_no, 50212);
         assert!(err.detail.as_deref().unwrap().contains("database protocol"));
@@ -199,8 +203,8 @@ mod tests {
 
     #[test]
     fn test_database_conversion_keeps_column_context_and_cause() {
-        let err = crate::data::db_error::covert_error(sqlx::Error::ColumnNotFound(
-            "created_at".to_string(),
+        let err = crate::data::db_error::covert_error(db_err(
+            sea_orm::sqlx::Error::ColumnNotFound("created_at".to_string()),
         ));
 
         assert_eq!(err.err_no, 50216);
@@ -213,7 +217,7 @@ mod tests {
         let logs = capture_logs(|| {
             let _ =
                 AppError::new(StatusCode::INTERNAL_SERVER_ERROR, 50200, "Server Internal Error")
-                    .with_cause(sqlx::Error::PoolClosed, "query user by id")
+                    .with_cause(sea_orm::sqlx::Error::PoolClosed, "query user by id")
                     .into_response();
         });
 
@@ -250,7 +254,7 @@ mod tests {
     async fn test_error_response_does_not_expose_cause_or_detail() {
         let res = crate::errors::ErrDbGeneric
             .with_cause(
-                sqlx::Error::Configuration("password=secret host=db.internal".into()),
+                sea_orm::sqlx::Error::Configuration("password=secret host=db.internal".into()),
                 "execute query against users table",
             )
             .into_response();

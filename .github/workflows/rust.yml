@@ -8,7 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  SQLX_OFFLINE: true  # 启用 SQLx 离线模式
 
 jobs:
   build:
@@ -17,8 +16,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # 安装 MySQL 开发库（sqlx 需要）
-    - name: Install MySQL client libraries
+    # 安装构建依赖
+    - name: Install build libraries
       run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev pkg-config
 
     - name: Install cargo-nextest

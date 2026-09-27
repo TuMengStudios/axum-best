@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 
 use crate::core::rest::AppError;
-use crate::models::oauth::OAuthAccount;
-use crate::models::user::UserInfo;
+use crate::models::OAuthAccount;
+use crate::models::UserInfo;
 
 /// Type-safe description of a partial user update.
 #[derive(Debug, Clone)]
@@ -15,6 +15,8 @@ pub enum UserUpdate {
     Salt(String),
     Password(String),
     Status(i8),
+    /// Retained for API compatibility; `updated_at` is always written by the
+    /// data layer with the current timestamp.
     UpdatedAt(i64),
 }
 

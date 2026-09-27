@@ -3,7 +3,7 @@ use serde::Serialize;
 use smart_default::SmartDefault;
 use validator::Validate;
 
-use crate::models::user::UserInfo;
+use crate::models::UserInfo;
 
 /// WeChat mini program login request
 #[derive(Deserialize, Debug, Validate, utoipa::ToSchema)]
@@ -111,11 +111,11 @@ pub struct ByUserIdResponse {
     pub signature: String,
     /// User's age
     pub age: u8,
-    /// Timestamp when the user was created (Unix timestamp)
+    /// Timestamp when the user was created (Unix timestamp in milliseconds)
     pub created_at: i64,
-    /// Timestamp when the user was last updated (Unix timestamp)
+    /// Timestamp when the user was last updated (Unix timestamp in milliseconds)
     pub updated_at: i64,
-    /// Timestamp when the user was deleted (Unix timestamp, 0 if not deleted)
+    /// Timestamp when the user was deleted (Unix timestamp in milliseconds, 0 if not deleted)
     pub deleted_at: i64,
     /// Account status, see [`UserInfo::STATUS_NORMAL`] / [`UserInfo::STATUS_DISABLED`]
     pub status: i8,
@@ -140,7 +140,7 @@ impl From<UserInfo> for ByUserIdResponse {
 #[cfg(test)]
 mod tests {
     use super::ByUserIdResponse;
-    use crate::models::user::UserInfo;
+    use crate::models::UserInfo;
 
     #[test]
     fn by_user_id_response_omits_sensitive_fields() {

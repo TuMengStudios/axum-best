@@ -37,11 +37,10 @@ anyhow = { version = "1.0.100", features = ["default"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.145", features = ["default"] }
 jsonwebtoken = { version = "9.3.1" }
-sqlx = { version = "0.8.6", features = [
+sea-orm = { version = "2.0.3", default-features = false, features = [
+  "macros",
   "sqlx-mysql",
-  "mysql",
-  "chrono",
-  "runtime-tokio",
+  "runtime-tokio-rustls",
 ] }
 tracing = { workspace = true, features = ["attributes"] }
 tracing-appender = { version = "0.2.3" }

@@ -1,5 +1,5 @@
-# 使用官方 Rust 镜像作为构建环境（使用 1.89 稳定版本）
-FROM rust:1.89-alpine AS builder
+# 使用官方 Rust 镜像作为构建环境（使用 1.98 稳定版本；SeaORM 2 要求 rustc 1.94+）
+FROM rust:1.98-alpine AS builder
 
 # 安装必要的构建依赖（包括静态 SSL 库、MySQL 开发包和 git——gitver proc-macro 需要）
 RUN apk add --no-cache musl-dev pkgconfig openssl-dev openssl-libs-static mariadb-connector-c-dev git
@@ -11,9 +11,6 @@ WORKDIR /app
 COPY . .
 
 # 构建应用
-# sqlx-cli 0.9.0 需要 rustc 1.94+，与本镜像的 rustc 1.89 不兼容；锁定到 0.8.6（与本地一致）
-RUN cargo install sqlx-cli --version 0.8.6 --locked --features mysql
-ENV SQLX_OFFLINE=true
 RUN cargo build --release
 
 # 使用轻量级运行时镜像（使用固定版本）

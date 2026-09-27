@@ -29,7 +29,7 @@
 
 | crate                                                                               | 版本                | 作用                                                                                                                  | 引入状态          |
 | ----------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| [`sqlx`](https://github.com/launchbadge/sqlx)                                        | 0.8.6               | 编译期校验的异步 SQL（特性：`sqlx-mysql`、`mysql`、`chrono`、`runtime-tokio`）                                       | dep               |
+| [`sea-orm`](https://github.com/SeaQL/sea-orm)                                       | 2.0.3               | 基于 SQLx 的异步 ORM（特性：`macros`、`sqlx-mysql`、`runtime-tokio-rustls`，关闭默认特性）                           | dep               |
 | [`redis`](https://github.com/redis-rs/redis-rs)                                      | 0.32.7              | Redis 客户端（特性：`tokio-comp`、`json`）                                                                            | dep               |
 | [`bb8-redis`](https://github.com/davidgorges/bb8-redis)                              | 0.24                | `bb8` 通用连接池的 Redis 适配                                                                                         | dep               |
 | [`reqwest`](https://github.com/seanmonstar/reqwest)                                  | 0.12.23             | 异步 HTTP 客户端（特性：`json`、`rustls-tls`，关闭 native TLS）                                                       | dep               |
