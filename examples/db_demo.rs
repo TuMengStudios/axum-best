@@ -17,11 +17,12 @@ async fn main() -> anyhow::Result<()> {
     // Test the database connection
     println!("\nTesting database connection...");
     match cfg.mysql.init_conn().await {
-        Ok(pool) => {
+        Ok(db) => {
             println!("✅ Database connection successful!");
 
             // Test a query
-            match sqlx::query("SELECT 1").execute(&pool).await {
+            use sea_orm::ConnectionTrait;
+            match db.execute_unprepared("SELECT 1").await {
                 Ok(_) => println!("✅ Database query test successful!"),
                 Err(e) => println!("❌ Database query test failed: {}", e),
             }

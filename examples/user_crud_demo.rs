@@ -6,12 +6,12 @@
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
-use axum_best::models::user::UserInfo;
+use axum_best::models::UserInfo;
 use axum_best::repos::user::UserUpdate;
 
-/// Returns the current timestamp
+/// Returns the current timestamp in milliseconds
 fn current_timestamp() -> Result<i64, Box<dyn std::error::Error>> {
-    Ok(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64)
+    Ok(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as i64)
 }
 
 #[tokio::main]
