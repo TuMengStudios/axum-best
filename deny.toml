@@ -85,8 +85,6 @@ ignore = [
     { id = "RUSTSEC-2024-0388", reason = "unmaintained with no replacement; transitive dep" },
     # proc-macro-error2: unmaintained proc-macro helper, used by validator_derive (validator 0.20.0).
     { id = "RUSTSEC-2026-0173", reason = "unmaintained with no replacement; validator_derive transitive dep" },
-    # rustls-pemfile: unmaintained (deprecated by rustls project), used by ureq 3.x.
-    { id = "RUSTSEC-2025-0134", reason = "unmaintained with no replacement; ureq transitive dep" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
